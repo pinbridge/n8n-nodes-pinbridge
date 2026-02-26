@@ -1,0 +1,53 @@
+{
+  "name": "n8n-nodes-pinbridge",
+  "version": "0.1.0",
+  "description": "n8n community node for PinBridge",
+  "license": "MIT",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "n8n-nodes",
+    "pinbridge"
+  ],
+  "homepage": "",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && npm run copy-assets",
+    "copy-assets": "mkdir -p dist/nodes/PinBridge && cp nodes/PinBridge/pinbridge.svg dist/nodes/PinBridge/pinbridge.svg",
+    "clean": "rm -rf dist",
+    "dev": "tsc -w -p tsconfig.json",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "n8n-workflow": "^1.95.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.57",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "typescript": "^5.6.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/PinBridgeApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/PinBridge/PinBridge.node.js"
+    ]
+  }
+}
