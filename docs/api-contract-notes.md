@@ -82,6 +82,43 @@ Source of truth examined:
 - Response: `JobStatusResponse`
   - `job_id`, `pin_id`, `status`, `submitted_at`, `completed_at?`, `pinterest_pin_id?`, `error_code?`, `error_message?`
 
+### 7) Import pins from JSON
+- Method/path: `POST /v1/pins/imports/json`
+- Auth: required
+- Request body: JSON array of pin-like objects
+  - each row follows the same shape as `PinCreate`
+  - required per row: `account_id`, `board_id`, `title`, `idempotency_key`
+  - row must include either `image_url` or `asset_id`
+- Response: `ImportJobResponse`
+  - `id`, `source_type`, `status`, row counters, timestamps, and per-row `results[]`
+- Node strategy:
+  - aggregate all incoming n8n items into one request body
+  - return a single n8n item representing the created import job
+
+### 8) Import pins from CSV
+- Method/path: `POST /v1/pins/imports/csv`
+- Auth: required
+- Request body: `multipart/form-data`
+  - `file` (CSV, required)
+- Response: `ImportJobResponse`
+- Node strategy:
+  - process each incoming item independently
+  - upload the configured binary property as the CSV file
+  - return one n8n item per uploaded CSV/import job
+
+### 9) Get import job
+- Method/path: `GET /v1/pins/imports/{job_id}`
+- Auth: required
+- Response: `ImportJobResponse`
+
+### 10) List import jobs
+- Method/path: `GET /v1/pins/imports`
+- Auth: required
+- Query:
+  - `limit` (integer, optional)
+  - `offset` (integer, optional)
+- Response: `ImportJobResponse[]`
+
 ## Error response format
 Observed patterns:
 - Standard FastAPI/HTTPException string detail:

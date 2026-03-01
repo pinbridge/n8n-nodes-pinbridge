@@ -63,6 +63,36 @@ interface PinBridgeJobStatus {
 	[key: string]: unknown;
 }
 
+interface PinBridgeImportJobResult {
+	row_number: number;
+	status: string;
+	pin_id?: string | null;
+	idempotency_key?: string | null;
+	error_code?: string | null;
+	error_message?: string | null;
+	[key: string]: unknown;
+}
+
+interface PinBridgeImportJob {
+	id: string;
+	workspace_id: string;
+	source_type: string;
+	status: string;
+	source_filename?: string | null;
+	total_rows: number;
+	processed_rows: number;
+	created_rows: number;
+	existing_rows: number;
+	failed_rows: number;
+	results: PinBridgeImportJobResult[];
+	error_message?: string | null;
+	started_at?: string | null;
+	completed_at?: string | null;
+	created_at: string;
+	updated_at: string;
+	[key: string]: unknown;
+}
+
 interface PinBridgeSchedule {
 	id: string;
 	workspace_id: string;
@@ -178,6 +208,36 @@ function mapJobStatusJson(status: PinBridgeJobStatus): IDataObject {
 		errorCode: status.error_code ?? null,
 		errorMessage: status.error_message ?? null,
 		raw: status as unknown as IDataObject,
+	};
+}
+
+function mapImportJobJson(job: PinBridgeImportJob): IDataObject {
+	return {
+		id: job.id,
+		workspaceId: job.workspace_id,
+		sourceType: job.source_type,
+		status: job.status,
+		sourceFilename: job.source_filename ?? null,
+		totalRows: job.total_rows,
+		processedRows: job.processed_rows,
+		createdRows: job.created_rows,
+		existingRows: job.existing_rows,
+		failedRows: job.failed_rows,
+		errorMessage: job.error_message ?? null,
+		startedAt: job.started_at ?? null,
+		completedAt: job.completed_at ?? null,
+		createdAt: job.created_at,
+		updatedAt: job.updated_at,
+		results: job.results.map((result) => ({
+			rowNumber: result.row_number,
+			status: result.status,
+			pinId: result.pin_id ?? null,
+			idempotencyKey: result.idempotency_key ?? null,
+			errorCode: result.error_code ?? null,
+			errorMessage: result.error_message ?? null,
+			raw: result as unknown as IDataObject,
+		})),
+		raw: job as unknown as IDataObject,
 	};
 }
 
@@ -407,14 +467,34 @@ export class PinBridge implements INodeType {
 						action: 'Get a pin',
 					},
 					{
+						name: 'Get Import',
+						value: 'getImport',
+						action: 'Get a bulk import job',
+					},
+					{
 						name: 'Get Status',
 						value: 'getStatus',
 						action: 'Get a pin job status',
 					},
 					{
+						name: 'Import CSV',
+						value: 'importCsv',
+						action: 'Import pins from a CSV file',
+					},
+					{
+						name: 'Import JSON',
+						value: 'importJson',
+						action: 'Import pins from incoming JSON items',
+					},
+					{
 						name: 'List',
 						value: 'list',
 						action: 'List pins',
+					},
+					{
+						name: 'List Imports',
+						value: 'listImports',
+						action: 'List bulk import jobs',
 					},
 					{
 						name: 'Publish',
@@ -622,7 +702,7 @@ export class PinBridge implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['boards', 'connections', 'pins', 'schedules'],
-						operation: ['list'],
+						operation: ['list', 'listImports'],
 					},
 				},
 				default: true,
@@ -639,7 +719,7 @@ export class PinBridge implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['boards', 'connections', 'pins', 'schedules'],
-						operation: ['list'],
+						operation: ['list', 'listImports'],
 						returnAll: [false],
 					},
 				},
@@ -763,13 +843,13 @@ export class PinBridge implements INodeType {
 				type: 'string',
 				displayOptions: {
 					show: {
-						resource: ['assets'],
-						operation: ['uploadImage', 'uploadVideo'],
+						resource: ['assets', 'pins'],
+						operation: ['uploadImage', 'uploadVideo', 'importCsv'],
 					},
 				},
 				default: 'data',
 				required: true,
-				description: 'Name of the incoming binary property to upload as the asset payload',
+				description: 'Name of the incoming binary property to upload',
 			},
 			{
 				displayName: 'Run At',
@@ -812,6 +892,20 @@ export class PinBridge implements INodeType {
 				default: '={{$json["id"]}}',
 				required: true,
 				description: 'Pin ID returned by PinBridge. The same UUID is used for Get Status.',
+			},
+			{
+				displayName: 'Import Job ID',
+				name: 'importJobId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['pins'],
+						operation: ['getImport'],
+					},
+				},
+				default: '={{$json["id"]}}',
+				required: true,
+				description: 'Bulk import job ID returned by an Import JSON or Import CSV operation',
 			},
 			{
 				displayName: 'Schedule ID',
@@ -1084,6 +1178,23 @@ export class PinBridge implements INodeType {
 			return [returnData];
 		}
 
+		if (resource === 'pins' && operation === 'listImports') {
+			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
+			const limit = this.getNodeParameter('limit', 0, 50) as number;
+			const imports = await fetchPaginatedCollection<PinBridgeImportJob>(
+				this,
+				'/v1/pins/imports',
+				limit,
+				returnAll,
+			);
+
+			for (const importJob of imports) {
+				returnData.push({ json: mapImportJobJson(importJob) });
+			}
+
+			return [returnData];
+		}
+
 		if (resource === 'schedules' && operation === 'list') {
 			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
 			const limit = this.getNodeParameter('limit', 0, 50) as number;
@@ -1096,6 +1207,79 @@ export class PinBridge implements INodeType {
 
 			for (const schedule of schedules) {
 				returnData.push({ json: mapScheduleJson(schedule) });
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'pins' && operation === 'importJson') {
+			try {
+				const rows = items.map((item) => item.json as IDataObject);
+				const importJob = (await pinBridgeApiRequest.call(
+					this,
+					'POST',
+					'/v1/pins/imports/json',
+					undefined,
+					rows,
+				)) as PinBridgeImportJob;
+
+				return [[{ json: mapImportJobJson(importJob) }]];
+			} catch (error) {
+				if (this.continueOnFail()) {
+					return [[{ json: { error: (error as Error).message } }]];
+				}
+				throw error;
+			}
+		}
+
+		if (resource === 'pins' && operation === 'importCsv') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const binaryPropertyName = this.getNodeParameter(
+						'binaryPropertyName',
+						itemIndex,
+					) as string;
+					const binaryData = items[itemIndex].binary?.[binaryPropertyName];
+					if (!binaryData) {
+						throw new NodeOperationError(
+							this.getNode(),
+							`Binary property '${binaryPropertyName}' is required`,
+							{ itemIndex },
+						);
+					}
+
+					const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, binaryData);
+					const formData = new FormData();
+					formData.set(
+						'file',
+						new Blob([buffer], { type: binaryData.mimeType || 'text/csv' }),
+						binaryData.fileName || 'pin-import.csv',
+					);
+
+					const importJob = (await pinBridgeMultipartRequest.call(
+						this,
+						'POST',
+						'/v1/pins/imports/csv',
+						formData,
+					)) as PinBridgeImportJob;
+
+					returnData.push({
+						json: mapImportJobJson(importJob),
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
 			}
 
 			return [returnData];
@@ -1179,6 +1363,44 @@ export class PinBridge implements INodeType {
 
 					returnData.push({
 						json: mapPinJson(pin),
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'pins' && operation === 'getImport') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const importJobId = this.getNodeParameter('importJobId', itemIndex) as string;
+					if (!importJobId) {
+						throw new NodeOperationError(this.getNode(), 'Import Job ID is required', {
+							itemIndex,
+						});
+					}
+
+					const importJob = (await pinBridgeApiRequest.call(
+						this,
+						'GET',
+						`/v1/pins/imports/${encodeURIComponent(importJobId)}`,
+					)) as PinBridgeImportJob;
+
+					returnData.push({
+						json: mapImportJobJson(importJob),
 						pairedItem: { item: itemIndex },
 					});
 				} catch (error) {

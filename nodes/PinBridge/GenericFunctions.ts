@@ -82,7 +82,7 @@ export async function getPinBridgeClient(this: PinBridgeContext): Promise<PinBri
 			};
 
 			if (request.body !== undefined) {
-				requestOptions.body = request.body as IDataObject;
+				requestOptions.body = request.body as IDataObject | IDataObject[];
 			}
 			if (request.formData !== undefined) {
 				requestOptions.formData = request.formData;
@@ -98,7 +98,7 @@ export async function pinBridgeApiRequest<TResponse = IDataObject>(
 	method: PinBridgeMethod,
 	path: string,
 	query?: PinBridgeQuery,
-	body?: IDataObject,
+	body?: IDataObject | IDataObject[],
 ): Promise<TResponse> {
 	const client = await getPinBridgeClient.call(this);
 
