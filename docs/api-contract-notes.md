@@ -50,7 +50,15 @@ Source of truth examined:
 - Response: `AssetResponse`
   - fields: `id`, `workspace_id`, `asset_type`, `original_filename`, `stored_filename`, `content_type`, `file_size_bytes`, `public_url`, timestamps
 
-### 4) Publish pin
+### 4) Upload video asset
+- Method/path: `POST /v1/assets/videos`
+- Auth: required
+- Request body: `multipart/form-data`
+  - `file` (binary video, required)
+- Response: `AssetResponse`
+  - fields: `id`, `workspace_id`, `asset_type`, `original_filename`, `stored_filename`, `content_type`, `file_size_bytes`, `public_url`, timestamps
+
+### 5) Publish pin
 - Method/path: `POST /v1/pins`
 - Auth: required
 - Request body: `PinCreate`
@@ -60,15 +68,15 @@ Source of truth examined:
   - `description` (string, optional)
   - `link_url` (uri, optional)
   - `image_url` (uri, optional when `asset_id` supplied)
-  - `asset_id` (uuid, optional when `image_url` supplied)
+  - `asset_id` (uuid, optional when `image_url` supplied; may reference an image or video asset)
   - `idempotency_key` (string, required, max 255)
 - Response: `PinResponse`
-  - includes `id`, `status` (`queued|publishing|published|failed`), `pinterest_pin_id?`, `error_code?`, `error_message?`, timestamps, etc.
+  - includes `id`, `status` (`queued|publishing|published|failed`), `media_type`, `media_url`, `pinterest_pin_id?`, `error_code?`, `error_message?`, timestamps, etc.
 - Idempotency behavior from route code:
   - uniqueness key is `(workspace_id, idempotency_key)`.
   - duplicate keys return existing pin (201) without re-enqueueing.
 
-### 5) Get pin status
+### 6) Get pin status
 - Method/path: `GET /v1/jobs/{job_id}` (alias to pin status)
 - Auth: required
 - Response: `JobStatusResponse`

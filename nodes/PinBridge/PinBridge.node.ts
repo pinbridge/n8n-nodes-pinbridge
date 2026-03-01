@@ -33,9 +33,11 @@ interface PinBridgePinRecord {
 	workspace_id: string;
 	pinterest_account_id: string;
 	status: string;
+	media_type: string;
 	title: string;
 	description?: string | null;
 	link_url?: string | null;
+	media_url: string;
 	image_url: string;
 	asset_id?: string | null;
 	board_id: string;
@@ -72,6 +74,8 @@ interface PinBridgeSchedule {
 		title?: string;
 		description?: string | null;
 		link_url?: string | null;
+		media_type?: string;
+		media_url?: string;
 		image_url?: string;
 		asset_id?: string | null;
 		[key: string]: unknown;
@@ -144,9 +148,11 @@ function mapPinJson(pin: PinBridgePinRecord): IDataObject {
 		workspaceId: pin.workspace_id,
 		accountId: pin.pinterest_account_id,
 		status: pin.status,
+		mediaType: pin.media_type,
 		title: pin.title,
 		description: pin.description ?? null,
 		linkUrl: pin.link_url ?? null,
+		mediaUrl: pin.media_url,
 		imageUrl: pin.image_url,
 		assetId: pin.asset_id ?? null,
 		boardId: pin.board_id,
@@ -186,6 +192,8 @@ function mapScheduleJson(schedule: PinBridgeSchedule): IDataObject {
 		title: schedule.payload.title ?? null,
 		description: schedule.payload.description ?? null,
 		linkUrl: schedule.payload.link_url ?? null,
+		mediaType: schedule.payload.media_type ?? null,
+		mediaUrl: schedule.payload.media_url ?? null,
 		imageUrl: schedule.payload.image_url ?? null,
 		assetId: schedule.payload.asset_id ?? null,
 		pinId: schedule.pin_id ?? null,
@@ -339,6 +347,11 @@ export class PinBridge implements INodeType {
 						name: 'Upload Image',
 						value: 'uploadImage',
 						action: 'Upload an image asset',
+					},
+					{
+						name: 'Upload Video',
+						value: 'uploadVideo',
+						action: 'Upload a video asset',
 					},
 				],
 				default: 'uploadImage',
@@ -634,7 +647,7 @@ export class PinBridge implements INodeType {
 				description: 'Max number of records to return when Return All is disabled',
 			},
 			{
-				displayName: 'Image Source',
+				displayName: 'Media Source',
 				name: 'imageSource',
 				type: 'options',
 				displayOptions: {
@@ -654,7 +667,8 @@ export class PinBridge implements INodeType {
 					},
 				],
 				default: 'asset',
-				description: 'Choose whether to reference a PinBridge asset or an existing public image URL',
+				description:
+					'Choose whether to reference a PinBridge asset (image or video) or an existing public image URL',
 			},
 			{
 				displayName: 'Title',
@@ -727,7 +741,7 @@ export class PinBridge implements INodeType {
 				},
 				default: '={{$json["id"]}}',
 				required: true,
-				description: 'PinBridge asset ID returned by the Upload Image operation',
+				description: 'PinBridge asset ID returned by the Upload Image or Upload Video operation',
 			},
 			{
 				displayName: 'Asset ID',
@@ -741,7 +755,7 @@ export class PinBridge implements INodeType {
 				},
 				default: '={{$json["id"]}}',
 				required: true,
-				description: 'PinBridge asset ID returned by the Upload Image operation',
+				description: 'PinBridge asset ID returned by the Upload Image or Upload Video operation',
 			},
 			{
 				displayName: 'Binary Property',
@@ -750,12 +764,12 @@ export class PinBridge implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['assets'],
-						operation: ['uploadImage'],
+						operation: ['uploadImage', 'uploadVideo'],
 					},
 				},
 				default: 'data',
 				required: true,
-				description: 'Name of the incoming binary property to upload as the image asset',
+				description: 'Name of the incoming binary property to upload as the asset payload',
 			},
 			{
 				displayName: 'Run At',
@@ -960,7 +974,7 @@ export class PinBridge implements INodeType {
 			return [returnData];
 		}
 
-		if (resource === 'assets' && operation === 'uploadImage') {
+		if (resource === 'assets' && (operation === 'uploadImage' || operation === 'uploadVideo')) {
 			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 				try {
 					const binaryPropertyName = this.getNodeParameter(
@@ -978,14 +992,18 @@ export class PinBridge implements INodeType {
 
 					const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, binaryData);
 					const formData = new FormData();
-					const filename = binaryData.fileName || 'pin-image.png';
-					const mimeType = binaryData.mimeType || 'image/png';
+					const isVideoUpload = operation === 'uploadVideo';
+					const filename =
+						binaryData.fileName || (isVideoUpload ? 'pin-video.mp4' : 'pin-image.png');
+					const mimeType =
+						binaryData.mimeType || (isVideoUpload ? 'video/mp4' : 'image/png');
 					formData.set('file', new Blob([buffer], { type: mimeType }), filename);
+					const assetPath = isVideoUpload ? '/v1/assets/videos' : '/v1/assets/images';
 
 					const asset = (await pinBridgeMultipartRequest.call(
 						this,
 						'POST',
-						'/v1/assets/images',
+						assetPath,
 						formData,
 					)) as PinBridgeAsset;
 
