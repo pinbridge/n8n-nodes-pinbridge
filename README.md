@@ -1,18 +1,30 @@
 # n8n-nodes-pinbridge
 
-PinBridge community node for n8n. It publishes Pinterest pins through the PinBridge API and checks publish status.
+PinBridge community node for n8n. It publishes, schedules, and manages Pinterest workflows through the PinBridge API.
 
 ## Features
 
 - Credentials: PinBridge API Key + Base URL
 - Boards:
+  - Create Board
+  - Delete Board
   - List Boards
   - Board dropdown via loadOptions
 - Pins:
+  - Delete Pin
+  - Get Pin
+  - List Pins
   - Publish Pin (item-by-item bulk from incoming n8n items)
   - Get Pin Status (job status)
+- Schedules:
+  - Create Schedule
+  - Get Schedule
+  - List Schedules
+  - Cancel Schedule
 - Connections:
   - List connected Pinterest accounts
+- Rate Meter:
+  - Get rate limit status for a connected account
 
 ## API contract source
 
@@ -40,7 +52,7 @@ npm install n8n-nodes-pinbridge
 
 3. In n8n, create credentials:
 - **Credential type**: `PinBridge API Key`
-- **Base URL**: your PinBridge API URL (default from API config is `http://localhost:8000`)
+- **Base URL**: `https://api.pinbridge.io` (or your self-hosted API URL)
 - **API Key**: your PinBridge API key
 
 If you do not already have a key, create one from your PinBridge setup flow (dashboard/API, depending on your deployment).
@@ -52,6 +64,12 @@ Calls `GET /v1/pinterest/accounts`.
 
 ### Boards -> List
 Calls `GET /v1/pinterest/boards?account_id=...`.
+
+### Boards -> Create
+Calls `POST /v1/pinterest/boards`.
+
+### Boards -> Delete
+Calls `DELETE /v1/pinterest/boards/{board_id}?account_id=...`.
 
 ### Pins -> Publish
 Calls `POST /v1/pins` with:
@@ -65,8 +83,32 @@ Calls `POST /v1/pins` with:
 
 Idempotency key defaults to `{{$execution.id}}-{{$itemIndex}}`.
 
+### Pins -> Get
+Calls `GET /v1/pins/{pin_id}`.
+
+### Pins -> List
+Calls `GET /v1/pins`.
+
 ### Pins -> Get Status
 Calls `GET /v1/jobs/{job_id}`.
+
+### Pins -> Delete
+Calls `DELETE /v1/pins/{pin_id}`.
+
+### Schedules -> Create
+Calls `POST /v1/schedules`.
+
+### Schedules -> Get
+Calls `GET /v1/schedules/{schedule_id}`.
+
+### Schedules -> List
+Calls `GET /v1/schedules`.
+
+### Schedules -> Cancel
+Calls `POST /v1/schedules/{schedule_id}/cancel`.
+
+### Rate Meter -> Get
+Calls `GET /v1/rate-meter?account_id=...`.
 
 ## Notes
 
@@ -91,6 +133,17 @@ Calls `GET /v1/jobs/{job_id}`.
 1. Use Publish output `id`.
 2. Add another PinBridge node with `resource=Pins`, `operation=Get Status` and `Pin ID={{$json.id}}`.
 3. Optional: place `Wait` + loop until status is `published` or `failed`.
+
+### 4) Schedule a future publish
+1. Set `resource=Schedules`, `operation=Create`.
+2. Choose Connection and Board.
+3. Fill `Run At`, `Title`, `Image URL`, and optional metadata.
+4. Use the returned schedule ID for later status or cancellation steps.
+
+### 5) Check rate limit headroom before publishing
+1. Set `resource=Rate Meter`, `operation=Get`.
+2. Choose the Connection.
+3. Branch in n8n based on `accountTokensAvailable` or `globalTokensAvailable`.
 
 ## Development
 

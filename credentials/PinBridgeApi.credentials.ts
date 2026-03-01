@@ -10,11 +10,11 @@ export class PinBridgeApi implements ICredentialType {
 			displayName: 'Base URL',
 			name: 'baseUrl',
 			type: 'string',
-			default: 'http://localhost:8000',
+			default: 'https://api.pinbridge.io',
 			required: true,
 			placeholder: 'https://api.pinbridge.io',
 			description:
-				'PinBridge API base URL. Use your self-hosted API URL or the hosted API endpoint.',
+				'PinBridge API base URL. Use the hosted API endpoint or your self-hosted PinBridge API URL.',
 		},
 		{
 			displayName: 'API Key',
