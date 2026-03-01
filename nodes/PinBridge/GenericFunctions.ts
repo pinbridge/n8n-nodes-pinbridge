@@ -75,7 +75,7 @@ export async function getPinBridgeClient(this: PinBridgeContext): Promise<PinBri
 		baseUrl: credentials.baseUrl,
 		apiKey: credentials.apiKey,
 		executor: async <TResponse = unknown>(request: PinBridgeHttpRequest): Promise<TResponse> => {
-			const requestOptions: IHttpRequestOptions = {
+			const requestOptions: IHttpRequestOptions & { formData?: FormData } = {
 				method: request.method,
 				url: request.url,
 				headers: request.headers,
@@ -83,6 +83,9 @@ export async function getPinBridgeClient(this: PinBridgeContext): Promise<PinBri
 
 			if (request.body !== undefined) {
 				requestOptions.body = request.body as IDataObject;
+			}
+			if (request.formData !== undefined) {
+				requestOptions.formData = request.formData;
 			}
 
 			return (await this.helpers.httpRequest.call(this, requestOptions)) as TResponse;
@@ -105,6 +108,33 @@ export async function pinBridgeApiRequest<TResponse = IDataObject>(
 			path,
 			query,
 			body,
+		});
+	} catch (error) {
+		if (error instanceof PinBridgeApiError) {
+			throw buildNodeApiError(this, error);
+		}
+
+		throw new NodeApiError(this.getNode(), error as JsonObject, {
+			description: `Unexpected PinBridge request error for ${method} ${path}`,
+		});
+	}
+}
+
+export async function pinBridgeMultipartRequest<TResponse = IDataObject>(
+	this: PinBridgeContext,
+	method: PinBridgeMethod,
+	path: string,
+	formData: FormData,
+	query?: PinBridgeQuery,
+): Promise<TResponse> {
+	const client = await getPinBridgeClient.call(this);
+
+	try {
+		return await client.request<TResponse>({
+			method,
+			path,
+			query,
+			formData,
 		});
 	} catch (error) {
 		if (error instanceof PinBridgeApiError) {

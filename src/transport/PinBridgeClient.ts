@@ -9,6 +9,7 @@ export interface PinBridgeRequestOptions {
 	path: string;
 	query?: PinBridgeQuery;
 	body?: unknown;
+	formData?: FormData;
 	headers?: Record<string, string>;
 }
 
@@ -17,6 +18,7 @@ export interface PinBridgeHttpRequest {
 	url: string;
 	headers: Record<string, string>;
 	body?: unknown;
+	formData?: FormData;
 }
 
 export type PinBridgeRequestExecutor = <TResponse = unknown>(
@@ -187,6 +189,7 @@ export class PinBridgeClient {
 				url: url.toString(),
 				headers,
 				body: options.body,
+				formData: options.formData,
 			});
 		} catch (error) {
 			throw errorFromUnknown(error, options.method, options.path);

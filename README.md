@@ -2,6 +2,8 @@
 
 PinBridge community node for n8n. It publishes, schedules, and manages Pinterest workflows through the PinBridge API.
 
+This repo targets PinBridge v1.0.0.
+
 ## Features
 
 - Credentials: PinBridge API Key + Base URL
@@ -16,6 +18,9 @@ PinBridge community node for n8n. It publishes, schedules, and manages Pinterest
   - List Pins
   - Publish Pin (item-by-item bulk from incoming n8n items)
   - Get Pin Status (job status)
+- Assets:
+  - Upload Image
+  - Get Asset
 - Schedules:
   - Create Schedule
   - Get Schedule
@@ -71,6 +76,12 @@ Calls `POST /v1/pinterest/boards`.
 ### Boards -> Delete
 Calls `DELETE /v1/pinterest/boards/{board_id}?account_id=...`.
 
+### Assets -> Upload Image
+Calls `POST /v1/assets/images` with `multipart/form-data` from an incoming n8n binary property.
+
+### Assets -> Get
+Calls `GET /v1/assets/{asset_id}`.
+
 ### Pins -> Publish
 Calls `POST /v1/pins` with:
 - `account_id`
@@ -78,7 +89,7 @@ Calls `POST /v1/pins` with:
 - `title`
 - `description` (optional)
 - `link_url` (optional)
-- `image_url`
+- `image_url` or `asset_id`
 - `idempotency_key`
 
 Idempotency key defaults to `{{$execution.id}}-{{$itemIndex}}`.
@@ -96,7 +107,7 @@ Calls `GET /v1/jobs/{job_id}`.
 Calls `DELETE /v1/pins/{pin_id}`.
 
 ### Schedules -> Create
-Calls `POST /v1/schedules`.
+Calls `POST /v1/schedules` with `image_url` or `asset_id`.
 
 ### Schedules -> Get
 Calls `GET /v1/schedules/{schedule_id}`.
@@ -112,35 +123,42 @@ Calls `GET /v1/rate-meter?account_id=...`.
 
 ## Notes
 
-- Current PinBridge publish endpoint accepts `image_url` only. Binary image upload is not supported by the API contract used here.
+- Upload Image is the recommended path when your source file is already present in the n8n workflow as binary data.
 - Plan/billing errors may return structured details under `detail.error` (`code`, `message`, `upgrade_url`).
 
 ## Example workflows
 
-### 1) Publish one pin from image URL + link
+### 1) Upload a binary image and publish by asset ID
+1. Set `resource=Assets`, `operation=Upload Image`.
+2. Point `Binary Property` to the incoming image data.
+3. Feed the returned `id` into a second PinBridge node with `resource=Pins`, `operation=Publish`, and `Image Source=Uploaded Asset`.
+
+### 2) Publish one pin from image URL + link
 1. Set `resource=Pins`, `operation=Publish`.
 2. Choose Connection and Board.
-3. Fill `Title`, `Image URL`, optional `Link URL` and `Description`.
+3. Set `Image Source=Public Image URL`.
+4. Fill `Title`, `Image URL`, optional `Link URL` and `Description`.
 4. Execute node.
 
-### 2) Publish multiple pins via SplitInBatches
+### 3) Publish multiple pins via SplitInBatches
 1. Feed a list of pin payload items into `SplitInBatches`.
 2. Map fields into PinBridge Publish parameters with expressions.
 3. Keep default idempotency key or map your own unique key per item.
 4. Each incoming item publishes one pin.
 
-### 3) Poll status after publish
+### 4) Poll status after publish
 1. Use Publish output `id`.
 2. Add another PinBridge node with `resource=Pins`, `operation=Get Status` and `Pin ID={{$json.id}}`.
 3. Optional: place `Wait` + loop until status is `published` or `failed`.
 
-### 4) Schedule a future publish
+### 5) Schedule a future publish
 1. Set `resource=Schedules`, `operation=Create`.
 2. Choose Connection and Board.
-3. Fill `Run At`, `Title`, `Image URL`, and optional metadata.
+3. Choose `Image Source=Uploaded Asset` or `Public Image URL`.
+4. Fill `Run At`, `Title`, and the relevant media field plus optional metadata.
 4. Use the returned schedule ID for later status or cancellation steps.
 
-### 5) Check rate limit headroom before publishing
+### 6) Check rate limit headroom before publishing
 1. Set `resource=Rate Meter`, `operation=Get`.
 2. Choose the Connection.
 3. Branch in n8n based on `accountTokensAvailable` or `globalTokensAvailable`.

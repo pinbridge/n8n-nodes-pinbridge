@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-pinbridge",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "n8n community node for PinBridge",
   "license": "MIT",
   "keywords": [

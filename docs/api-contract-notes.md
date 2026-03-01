@@ -5,10 +5,12 @@ Source of truth examined:
 - `../api/app/api/routes/pins.py`
 - `../api/app/api/routes/pinterest.py`
 - `../api/app/api/routes/jobs.py`
+- `../api/app/api/routes/assets.py`
 - `../api/app/core/dependencies.py`
 - `../api/app/core/openapi.py`
 - `../api/app/core/config.py`
 - `../api/app/main.py`
+- `../api/app/schemas/asset.py`
 - `../api/app/schemas/pin.py`
 - `../api/app/schemas/pinterest.py`
 
@@ -40,7 +42,15 @@ Source of truth examined:
 - Response: `BoardResponse[]`
   - fields: `id`, `name`, `description?`, `privacy?`
 
-### 3) Publish pin
+### 3) Upload image asset
+- Method/path: `POST /v1/assets/images`
+- Auth: required
+- Request body: `multipart/form-data`
+  - `file` (binary image, required)
+- Response: `AssetResponse`
+  - fields: `id`, `workspace_id`, `asset_type`, `original_filename`, `stored_filename`, `content_type`, `file_size_bytes`, `public_url`, timestamps
+
+### 4) Publish pin
 - Method/path: `POST /v1/pins`
 - Auth: required
 - Request body: `PinCreate`
@@ -49,7 +59,8 @@ Source of truth examined:
   - `title` (string, required, max 500)
   - `description` (string, optional)
   - `link_url` (uri, optional)
-  - `image_url` (uri, required)
+  - `image_url` (uri, optional when `asset_id` supplied)
+  - `asset_id` (uuid, optional when `image_url` supplied)
   - `idempotency_key` (string, required, max 255)
 - Response: `PinResponse`
   - includes `id`, `status` (`queued|publishing|published|failed`), `pinterest_pin_id?`, `error_code?`, `error_message?`, timestamps, etc.
@@ -57,7 +68,7 @@ Source of truth examined:
   - uniqueness key is `(workspace_id, idempotency_key)`.
   - duplicate keys return existing pin (201) without re-enqueueing.
 
-### 4) Get pin status
+### 5) Get pin status
 - Method/path: `GET /v1/jobs/{job_id}` (alias to pin status)
 - Auth: required
 - Response: `JobStatusResponse`

@@ -9,7 +9,7 @@ import type {
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
-import { pinBridgeApiRequest } from './GenericFunctions';
+import { pinBridgeApiRequest, pinBridgeMultipartRequest } from './GenericFunctions';
 
 interface PinBridgeAccount {
 	id: string;
@@ -37,6 +37,7 @@ interface PinBridgePinRecord {
 	description?: string | null;
 	link_url?: string | null;
 	image_url: string;
+	asset_id?: string | null;
 	board_id: string;
 	pinterest_pin_id?: string | null;
 	error_code?: string | null;
@@ -72,10 +73,25 @@ interface PinBridgeSchedule {
 		description?: string | null;
 		link_url?: string | null;
 		image_url?: string;
+		asset_id?: string | null;
 		[key: string]: unknown;
 	};
 	last_error?: string | null;
 	pin_id?: string | null;
+	created_at: string;
+	updated_at: string;
+	[key: string]: unknown;
+}
+
+interface PinBridgeAsset {
+	id: string;
+	workspace_id: string;
+	asset_type: string;
+	original_filename: string;
+	stored_filename: string;
+	content_type: string;
+	file_size_bytes: number;
+	public_url: string;
 	created_at: string;
 	updated_at: string;
 	[key: string]: unknown;
@@ -132,6 +148,7 @@ function mapPinJson(pin: PinBridgePinRecord): IDataObject {
 		description: pin.description ?? null,
 		linkUrl: pin.link_url ?? null,
 		imageUrl: pin.image_url,
+		assetId: pin.asset_id ?? null,
 		boardId: pin.board_id,
 		pinterestPinId: pin.pinterest_pin_id ?? null,
 		errorCode: pin.error_code ?? null,
@@ -170,11 +187,28 @@ function mapScheduleJson(schedule: PinBridgeSchedule): IDataObject {
 		description: schedule.payload.description ?? null,
 		linkUrl: schedule.payload.link_url ?? null,
 		imageUrl: schedule.payload.image_url ?? null,
+		assetId: schedule.payload.asset_id ?? null,
 		pinId: schedule.pin_id ?? null,
 		lastError: schedule.last_error ?? null,
 		createdAt: schedule.created_at,
 		updatedAt: schedule.updated_at,
 		raw: schedule as unknown as IDataObject,
+	};
+}
+
+function mapAssetJson(asset: PinBridgeAsset): IDataObject {
+	return {
+		id: asset.id,
+		workspaceId: asset.workspace_id,
+		assetType: asset.asset_type,
+		originalFilename: asset.original_filename,
+		storedFilename: asset.stored_filename,
+		contentType: asset.content_type,
+		fileSizeBytes: asset.file_size_bytes,
+		publicUrl: asset.public_url,
+		createdAt: asset.created_at,
+		updatedAt: asset.updated_at,
+		raw: asset as unknown as IDataObject,
 	};
 }
 
@@ -259,6 +293,10 @@ export class PinBridge implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
+						name: 'Assets',
+						value: 'assets',
+					},
+					{
 						name: 'Boards',
 						value: 'boards',
 					},
@@ -280,6 +318,30 @@ export class PinBridge implements INodeType {
 					},
 				],
 				default: 'pins',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['assets'],
+					},
+				},
+				options: [
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get an asset',
+					},
+					{
+						name: 'Upload Image',
+						value: 'uploadImage',
+						action: 'Upload an image asset',
+					},
+				],
+				default: 'uploadImage',
 			},
 			{
 				displayName: 'Operation',
@@ -572,6 +634,29 @@ export class PinBridge implements INodeType {
 				description: 'Max number of records to return when Return All is disabled',
 			},
 			{
+				displayName: 'Image Source',
+				name: 'imageSource',
+				type: 'options',
+				displayOptions: {
+					show: {
+						resource: ['pins', 'schedules'],
+						operation: ['publish', 'create'],
+					},
+				},
+				options: [
+					{
+						name: 'Uploaded Asset',
+						value: 'asset',
+					},
+					{
+						name: 'Public Image URL',
+						value: 'url',
+					},
+				],
+				default: 'asset',
+				description: 'Choose whether to reference a PinBridge asset or an existing public image URL',
+			},
+			{
 				displayName: 'Title',
 				name: 'title',
 				type: 'string',
@@ -622,11 +707,55 @@ export class PinBridge implements INodeType {
 					show: {
 						resource: ['pins', 'schedules'],
 						operation: ['publish', 'create'],
+						imageSource: ['url'],
 					},
 				},
 				default: '',
 				required: true,
 				description: 'Public image URL accepted by the PinBridge API',
+			},
+			{
+				displayName: 'Asset ID',
+				name: 'assetId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['pins', 'schedules'],
+						operation: ['publish', 'create'],
+						imageSource: ['asset'],
+					},
+				},
+				default: '={{$json["id"]}}',
+				required: true,
+				description: 'PinBridge asset ID returned by the Upload Image operation',
+			},
+			{
+				displayName: 'Asset ID',
+				name: 'assetLookupId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['assets'],
+						operation: ['get'],
+					},
+				},
+				default: '={{$json["id"]}}',
+				required: true,
+				description: 'PinBridge asset ID returned by the Upload Image operation',
+			},
+			{
+				displayName: 'Binary Property',
+				name: 'binaryPropertyName',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['assets'],
+						operation: ['uploadImage'],
+					},
+				},
+				default: 'data',
+				required: true,
+				description: 'Name of the incoming binary property to upload as the image asset',
 			},
 			{
 				displayName: 'Run At',
@@ -831,6 +960,95 @@ export class PinBridge implements INodeType {
 			return [returnData];
 		}
 
+		if (resource === 'assets' && operation === 'uploadImage') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const binaryPropertyName = this.getNodeParameter(
+						'binaryPropertyName',
+						itemIndex,
+					) as string;
+					const binaryData = items[itemIndex].binary?.[binaryPropertyName];
+					if (!binaryData) {
+						throw new NodeOperationError(
+							this.getNode(),
+							`Binary property '${binaryPropertyName}' is required`,
+							{ itemIndex },
+						);
+					}
+
+					const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, binaryData);
+					const formData = new FormData();
+					const filename = binaryData.fileName || 'pin-image.png';
+					const mimeType = binaryData.mimeType || 'image/png';
+					formData.set('file', new Blob([buffer], { type: mimeType }), filename);
+
+					const asset = (await pinBridgeMultipartRequest.call(
+						this,
+						'POST',
+						'/v1/assets/images',
+						formData,
+					)) as PinBridgeAsset;
+
+					returnData.push({
+						json: mapAssetJson(asset),
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'assets' && operation === 'get') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const assetLookupId = this.getNodeParameter('assetLookupId', itemIndex) as string;
+					if (!assetLookupId) {
+						throw new NodeOperationError(this.getNode(), 'Asset ID is required', {
+							itemIndex,
+						});
+					}
+
+					const asset = (await pinBridgeApiRequest.call(
+						this,
+						'GET',
+						`/v1/assets/${encodeURIComponent(assetLookupId)}`,
+					)) as PinBridgeAsset;
+
+					returnData.push({
+						json: mapAssetJson(asset),
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
+			}
+
+			return [returnData];
+		}
+
 		if (resource === 'pins' && operation === 'list') {
 			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
 			const limit = this.getNodeParameter('limit', 0, 50) as number;
@@ -873,16 +1091,20 @@ export class PinBridge implements INodeType {
 					const title = this.getNodeParameter('title', itemIndex) as string;
 					const description = this.getNodeParameter('description', itemIndex, '') as string;
 					const linkUrl = this.getNodeParameter('linkUrl', itemIndex, '') as string;
-					const imageUrl = this.getNodeParameter('imageUrl', itemIndex) as string;
+					const imageSource = this.getNodeParameter('imageSource', itemIndex) as string;
 					const idempotencyKey = this.getNodeParameter('idempotencyKey', itemIndex) as string;
 
 					const body: IDataObject = {
 						account_id: accountId,
 						board_id: boardId,
 						title,
-						image_url: imageUrl,
 						idempotency_key: idempotencyKey,
 					};
+					if (imageSource === 'asset') {
+						body.asset_id = this.getNodeParameter('assetId', itemIndex) as string;
+					} else {
+						body.image_url = this.getNodeParameter('imageUrl', itemIndex) as string;
+					}
 
 					if (description) {
 						body.description = description;
@@ -1044,15 +1266,19 @@ export class PinBridge implements INodeType {
 					const title = this.getNodeParameter('title', itemIndex) as string;
 					const description = this.getNodeParameter('description', itemIndex, '') as string;
 					const linkUrl = this.getNodeParameter('linkUrl', itemIndex, '') as string;
-					const imageUrl = this.getNodeParameter('imageUrl', itemIndex) as string;
+					const imageSource = this.getNodeParameter('imageSource', itemIndex) as string;
 
 					const body: IDataObject = {
 						account_id: accountId,
 						run_at: runAt,
 						board_id: boardId,
 						title,
-						image_url: imageUrl,
 					};
+					if (imageSource === 'asset') {
+						body.asset_id = this.getNodeParameter('assetId', itemIndex) as string;
+					} else {
+						body.image_url = this.getNodeParameter('imageUrl', itemIndex) as string;
+					}
 
 					if (description) {
 						body.description = description;
