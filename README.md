@@ -28,9 +28,18 @@ This repo targets PinBridge v1.0.0.
   - List Schedules
   - Cancel Schedule
 - Connections:
+  - Start OAuth
+  - Complete OAuth Callback
   - List connected Pinterest accounts
+  - Revoke connected Pinterest account
 - Rate Meter:
   - Get rate limit status for a connected account
+- Webhooks:
+  - Create Webhook
+  - Delete Webhook
+  - Get Webhook
+  - List Webhooks
+  - Update Webhook
 
 ## API contract source
 
@@ -67,6 +76,15 @@ If you do not already have a key, create one from your PinBridge setup flow (das
 
 ### Connections -> List
 Calls `GET /v1/pinterest/accounts`.
+
+### Connections -> Start OAuth
+Calls `GET /v1/pinterest/oauth/start`.
+
+### Connections -> Complete OAuth Callback
+Calls `GET /v1/pinterest/oauth/callback?code=...&state=...`.
+
+### Connections -> Revoke
+Calls `DELETE /v1/pinterest/accounts/{account_id}`.
 
 ### Boards -> List
 Calls `GET /v1/pinterest/boards?account_id=...`.
@@ -125,11 +143,27 @@ Calls `POST /v1/schedules/{schedule_id}/cancel`.
 ### Rate Meter -> Get
 Calls `GET /v1/rate-meter?account_id=...`.
 
+### Webhooks -> Create
+Calls `POST /v1/webhooks`.
+
+### Webhooks -> List
+Calls `GET /v1/webhooks`.
+
+### Webhooks -> Get
+Calls `GET /v1/webhooks/{webhook_id}`.
+
+### Webhooks -> Update
+Calls `PATCH /v1/webhooks/{webhook_id}`.
+
+### Webhooks -> Delete
+Calls `DELETE /v1/webhooks/{webhook_id}`.
+
 ## Notes
 
 - Upload Image is the recommended path when your source image is already present in the n8n workflow as binary data.
 - Upload Video is the recommended path for video pins because PinBridge publishes videos from uploaded assets.
 - Plan/billing errors may return structured details under `detail.error` (`code`, `message`, `upgrade_url`).
+- This node intentionally focuses on publishing workflows and does not include admin, password-reset, or billing-management endpoints.
 
 ## Example workflows
 

@@ -143,6 +143,29 @@ interface PinBridgeRateMeter {
 	global: PinBridgeRateBucket;
 }
 
+interface PinBridgeOAuthStartResponse {
+	authorization_url: string;
+	[key: string]: unknown;
+}
+
+interface PinBridgeOAuthCallbackResponse {
+	status: string;
+	message: string;
+	account_id?: string | null;
+	[key: string]: unknown;
+}
+
+interface PinBridgeWebhook {
+	id: string;
+	workspace_id: string;
+	url: string;
+	events: string[];
+	is_enabled: boolean;
+	created_at: string;
+	updated_at: string;
+	[key: string]: unknown;
+}
+
 function normalizeAccountName(account: PinBridgeAccount): string {
 	return (
 		account.display_name ||
@@ -301,6 +324,26 @@ function mapDeleteJson(resource: string, id: string): IDataObject {
 	};
 }
 
+function mapWebhookJson(webhook: PinBridgeWebhook): IDataObject {
+	return {
+		id: webhook.id,
+		workspaceId: webhook.workspace_id,
+		url: webhook.url,
+		events: webhook.events,
+		isEnabled: webhook.is_enabled,
+		createdAt: webhook.created_at,
+		updatedAt: webhook.updated_at,
+		raw: webhook as unknown as IDataObject,
+	};
+}
+
+function parseCsvList(value: string): string[] {
+	return value
+		.split(',')
+		.map((segment) => segment.trim())
+		.filter((segment) => segment.length > 0);
+}
+
 async function fetchPaginatedCollection<TRecord>(
 	context: IExecuteFunctions,
 	path: string,
@@ -383,6 +426,10 @@ export class PinBridge implements INodeType {
 					{
 						name: 'Rate Meter',
 						value: 'rateMeter',
+					},
+					{
+						name: 'Webhooks',
+						value: 'webhooks',
 					},
 				],
 				default: 'pins',
@@ -550,9 +597,24 @@ export class PinBridge implements INodeType {
 				},
 				options: [
 					{
+						name: 'Complete OAuth Callback',
+						value: 'completeOAuth',
+						action: 'Complete Pinterest OAuth callback',
+					},
+					{
 						name: 'List',
 						value: 'list',
 						action: 'List connected Pinterest accounts',
+					},
+					{
+						name: 'Revoke',
+						value: 'revoke',
+						action: 'Revoke a connected Pinterest account',
+					},
+					{
+						name: 'Start OAuth',
+						value: 'startOAuth',
+						action: 'Start Pinterest OAuth flow',
 					},
 				],
 				default: 'list',
@@ -575,6 +637,45 @@ export class PinBridge implements INodeType {
 					},
 				],
 				default: 'get',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+					},
+				},
+				options: [
+					{
+						name: 'Create',
+						value: 'create',
+						action: 'Create a webhook',
+					},
+					{
+						name: 'Delete',
+						value: 'delete',
+						action: 'Delete a webhook',
+					},
+					{
+						name: 'Get',
+						value: 'get',
+						action: 'Get a webhook',
+					},
+					{
+						name: 'List',
+						value: 'list',
+						action: 'List webhooks',
+					},
+					{
+						name: 'Update',
+						value: 'update',
+						action: 'Update a webhook',
+					},
+				],
+				default: 'list',
 			},
 			{
 				displayName: 'Connection',
@@ -645,6 +746,51 @@ export class PinBridge implements INodeType {
 				description: 'Pinterest connection/account used for the rate meter lookup',
 			},
 			{
+				displayName: 'Connection',
+				name: 'connectionId',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getAccounts',
+				},
+				displayOptions: {
+					show: {
+						resource: ['connections'],
+						operation: ['revoke'],
+					},
+				},
+				default: '',
+				required: true,
+				description: 'Connected Pinterest account ID to revoke',
+			},
+			{
+				displayName: 'OAuth Code',
+				name: 'oauthCode',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['connections'],
+						operation: ['completeOAuth'],
+					},
+				},
+				default: '',
+				required: true,
+				description: 'Pinterest OAuth callback code',
+			},
+			{
+				displayName: 'OAuth State',
+				name: 'oauthState',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['connections'],
+						operation: ['completeOAuth'],
+					},
+				},
+				default: '',
+				required: true,
+				description: 'Signed OAuth state returned by Start OAuth',
+			},
+			{
 				displayName: 'Board',
 				name: 'boardId',
 				type: 'options',
@@ -701,7 +847,7 @@ export class PinBridge implements INodeType {
 				type: 'boolean',
 				displayOptions: {
 					show: {
-						resource: ['boards', 'connections', 'pins', 'schedules'],
+						resource: ['boards', 'connections', 'pins', 'schedules', 'webhooks'],
 						operation: ['list', 'listImports'],
 					},
 				},
@@ -718,7 +864,7 @@ export class PinBridge implements INodeType {
 				},
 				displayOptions: {
 					show: {
-						resource: ['boards', 'connections', 'pins', 'schedules'],
+						resource: ['boards', 'connections', 'pins', 'schedules', 'webhooks'],
 						operation: ['list', 'listImports'],
 						returnAll: [false],
 					},
@@ -982,6 +1128,146 @@ export class PinBridge implements INodeType {
 				default: '',
 				description: 'Optional Pinterest board privacy value',
 			},
+			{
+				displayName: 'Webhook ID',
+				name: 'webhookId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+						operation: ['get', 'update', 'delete'],
+					},
+				},
+				default: '={{$json["id"]}}',
+				required: true,
+				description: 'Webhook ID returned by PinBridge',
+			},
+			{
+				displayName: 'Webhook URL',
+				name: 'webhookUrl',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+						operation: ['create'],
+					},
+				},
+				default: '',
+				required: true,
+				description: 'Webhook endpoint URL',
+			},
+			{
+				displayName: 'Webhook Secret',
+				name: 'webhookSecret',
+				type: 'string',
+				typeOptions: {
+					password: true,
+				},
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+						operation: ['create'],
+					},
+				},
+				default: '',
+				required: true,
+				description: 'Signing secret (minimum 16 characters)',
+			},
+			{
+				displayName: 'Webhook Events',
+				name: 'webhookEvents',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+						operation: ['create'],
+					},
+				},
+				default: 'pin.published,pin.failed',
+				description: 'Comma-separated events (for example: pin.published,pin.failed)',
+			},
+			{
+				displayName: 'Enabled',
+				name: 'webhookEnabled',
+				type: 'boolean',
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+						operation: ['create'],
+					},
+				},
+				default: true,
+				description: 'Whether the webhook is active',
+			},
+			{
+				displayName: 'Webhook URL (Optional)',
+				name: 'webhookUrlUpdate',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+						operation: ['update'],
+					},
+				},
+				default: '',
+				description: 'New webhook endpoint URL',
+			},
+			{
+				displayName: 'Webhook Secret (Optional)',
+				name: 'webhookSecretUpdate',
+				type: 'string',
+				typeOptions: {
+					password: true,
+				},
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+						operation: ['update'],
+					},
+				},
+				default: '',
+				description: 'New signing secret (minimum 16 characters)',
+			},
+			{
+				displayName: 'Webhook Events (Optional)',
+				name: 'webhookEventsUpdate',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+						operation: ['update'],
+					},
+				},
+				default: '',
+				description: 'New comma-separated event list',
+			},
+			{
+				displayName: 'Enabled (Optional)',
+				name: 'webhookEnabledUpdate',
+				type: 'options',
+				displayOptions: {
+					show: {
+						resource: ['webhooks'],
+						operation: ['update'],
+					},
+				},
+				options: [
+					{
+						name: 'Unchanged',
+						value: '',
+					},
+					{
+						name: 'Enabled',
+						value: 'true',
+					},
+					{
+						name: 'Disabled',
+						value: 'false',
+					},
+				],
+				default: '',
+				description: 'Optionally update enabled status',
+			},
 		],
 	};
 
@@ -1063,6 +1349,94 @@ export class PinBridge implements INodeType {
 			const selectedAccounts = returnAll ? accounts : accounts.slice(0, limit);
 			for (const account of selectedAccounts) {
 				returnData.push({ json: mapConnectionJson(account) });
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'connections' && operation === 'startOAuth') {
+			const oauthStart = (await pinBridgeApiRequest.call(
+				this,
+				'GET',
+				'/v1/pinterest/oauth/start',
+			)) as PinBridgeOAuthStartResponse;
+
+			return [[{ json: { authorizationUrl: oauthStart.authorization_url, raw: oauthStart } }]];
+		}
+
+		if (resource === 'connections' && operation === 'completeOAuth') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const oauthCode = this.getNodeParameter('oauthCode', itemIndex) as string;
+					const oauthState = this.getNodeParameter('oauthState', itemIndex) as string;
+
+					const callback = (await pinBridgeApiRequest.call(
+						this,
+						'GET',
+						'/v1/pinterest/oauth/callback',
+						{ code: oauthCode, state: oauthState },
+					)) as PinBridgeOAuthCallbackResponse;
+
+					returnData.push({
+						json: {
+							status: callback.status,
+							message: callback.message,
+							accountId: callback.account_id ?? null,
+							raw: callback as unknown as IDataObject,
+						},
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'connections' && operation === 'revoke') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const connectionId = this.getNodeParameter('connectionId', itemIndex) as string;
+					if (!connectionId) {
+						throw new NodeOperationError(this.getNode(), 'Connection ID is required', {
+							itemIndex,
+						});
+					}
+
+					await pinBridgeApiRequest.call(
+						this,
+						'DELETE',
+						`/v1/pinterest/accounts/${encodeURIComponent(connectionId)}`,
+					);
+
+					returnData.push({
+						json: mapDeleteJson('connection', connectionId),
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
 			}
 
 			return [returnData];
@@ -1702,6 +2076,224 @@ export class PinBridge implements INodeType {
 
 					returnData.push({
 						json: mapDeleteJson('board', boardId),
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'webhooks' && operation === 'list') {
+			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
+			const limit = this.getNodeParameter('limit', 0, 50) as number;
+			const webhooks = (await pinBridgeApiRequest.call(
+				this,
+				'GET',
+				'/v1/webhooks',
+			)) as PinBridgeWebhook[];
+
+			const selectedWebhooks = returnAll ? webhooks : webhooks.slice(0, limit);
+			for (const webhook of selectedWebhooks) {
+				returnData.push({ json: mapWebhookJson(webhook) });
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'webhooks' && operation === 'create') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const webhookUrl = this.getNodeParameter('webhookUrl', itemIndex) as string;
+					const webhookSecret = this.getNodeParameter('webhookSecret', itemIndex) as string;
+					const webhookEvents = this.getNodeParameter('webhookEvents', itemIndex, '') as string;
+					const webhookEnabled = this.getNodeParameter('webhookEnabled', itemIndex, true) as boolean;
+
+					const body: IDataObject = {
+						url: webhookUrl,
+						secret: webhookSecret,
+						is_enabled: webhookEnabled,
+					};
+					const parsedEvents = parseCsvList(webhookEvents);
+					if (parsedEvents.length > 0) {
+						body.events = parsedEvents;
+					}
+
+					const webhook = (await pinBridgeApiRequest.call(
+						this,
+						'POST',
+						'/v1/webhooks',
+						undefined,
+						body,
+					)) as PinBridgeWebhook;
+
+					returnData.push({
+						json: mapWebhookJson(webhook),
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'webhooks' && operation === 'get') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const webhookId = this.getNodeParameter('webhookId', itemIndex) as string;
+					if (!webhookId) {
+						throw new NodeOperationError(this.getNode(), 'Webhook ID is required', {
+							itemIndex,
+						});
+					}
+
+					const webhook = (await pinBridgeApiRequest.call(
+						this,
+						'GET',
+						`/v1/webhooks/${encodeURIComponent(webhookId)}`,
+					)) as PinBridgeWebhook;
+
+					returnData.push({
+						json: mapWebhookJson(webhook),
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'webhooks' && operation === 'update') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const webhookId = this.getNodeParameter('webhookId', itemIndex) as string;
+					if (!webhookId) {
+						throw new NodeOperationError(this.getNode(), 'Webhook ID is required', {
+							itemIndex,
+						});
+					}
+
+					const webhookUrlUpdate = this.getNodeParameter(
+						'webhookUrlUpdate',
+						itemIndex,
+						'',
+					) as string;
+					const webhookSecretUpdate = this.getNodeParameter(
+						'webhookSecretUpdate',
+						itemIndex,
+						'',
+					) as string;
+					const webhookEventsUpdate = this.getNodeParameter(
+						'webhookEventsUpdate',
+						itemIndex,
+						'',
+					) as string;
+					const webhookEnabledUpdate = this.getNodeParameter(
+						'webhookEnabledUpdate',
+						itemIndex,
+						'',
+					) as string;
+
+					const body: IDataObject = {};
+					if (webhookUrlUpdate) {
+						body.url = webhookUrlUpdate;
+					}
+					if (webhookSecretUpdate) {
+						body.secret = webhookSecretUpdate;
+					}
+					if (webhookEventsUpdate) {
+						body.events = parseCsvList(webhookEventsUpdate);
+					}
+					if (webhookEnabledUpdate === 'true') {
+						body.is_enabled = true;
+					} else if (webhookEnabledUpdate === 'false') {
+						body.is_enabled = false;
+					}
+
+					const webhook = (await pinBridgeApiRequest.call(
+						this,
+						'PATCH',
+						`/v1/webhooks/${encodeURIComponent(webhookId)}`,
+						undefined,
+						body,
+					)) as PinBridgeWebhook;
+
+					returnData.push({
+						json: mapWebhookJson(webhook),
+						pairedItem: { item: itemIndex },
+					});
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'webhooks' && operation === 'delete') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const webhookId = this.getNodeParameter('webhookId', itemIndex) as string;
+					if (!webhookId) {
+						throw new NodeOperationError(this.getNode(), 'Webhook ID is required', {
+							itemIndex,
+						});
+					}
+
+					await pinBridgeApiRequest.call(
+						this,
+						'DELETE',
+						`/v1/webhooks/${encodeURIComponent(webhookId)}`,
+					);
+
+					returnData.push({
+						json: mapDeleteJson('webhook', webhookId),
 						pairedItem: { item: itemIndex },
 					});
 				} catch (error) {
