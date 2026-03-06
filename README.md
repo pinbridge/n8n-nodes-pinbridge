@@ -45,11 +45,6 @@ This repo targets PinBridge v1.0.2.
   - List Webhooks
   - Update Webhook
 
-## API contract source
-
-This node is implemented from the PinBridge API source in `../api` and `../api/docs/openapi.json`.
-Contract notes used for implementation: `docs/api-contract-notes.md`.
-
 ## Authentication
 
 PinBridge accepts:
