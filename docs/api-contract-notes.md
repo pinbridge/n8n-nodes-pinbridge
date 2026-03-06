@@ -97,6 +97,7 @@ Source of truth examined:
   - row results can include `schedule_id` when the row is scheduled
 - Node strategy:
   - aggregate all incoming n8n items into one request body
+  - pre-validate `run_at` values (when present) to ensure timezone offset is included
   - return a single n8n item representing the created import job
 
 ### 8) Import pins from CSV
@@ -142,3 +143,4 @@ Node error mapping strategy:
 - Fallback to string `detail`.
 - Fallback to generic message + status code.
 - Never include credentials/api key in error output.
+- For scheduling payloads (`run_at`), validate timezone offset client-side before sending.

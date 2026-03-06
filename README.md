@@ -152,6 +152,7 @@ Calls `DELETE /v1/pins/{pin_id}`.
 
 ### Schedules -> Create
 Calls `POST /v1/schedules` with `image_url` or `asset_id`.
+`Run At` must be an absolute ISO 8601 timestamp with timezone offset.
 
 ### Schedules -> Get
 Calls `GET /v1/schedules/{schedule_id}`.

@@ -346,6 +346,10 @@ function parseCsvList(value: string): string[] {
 		.filter((segment) => segment.length > 0);
 }
 
+function hasExplicitTimezoneOffset(value: string): boolean {
+	return /(?:Z|[+-]\d{2}:\d{2})$/i.test(value);
+}
+
 async function fetchPaginatedCollection<TRecord>(
 	context: IExecuteFunctions,
 	path: string,
@@ -1670,6 +1674,15 @@ export class PinBridge implements INodeType {
 		if (resource === 'pins' && operation === 'importJson') {
 			try {
 				const rows = items.map((item) => item.json as IDataObject);
+				for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+					const runAt = rows[rowIndex].run_at;
+					if (typeof runAt === 'string' && runAt && !hasExplicitTimezoneOffset(runAt)) {
+						throw new NodeOperationError(
+							this.getNode(),
+							`Import row ${rowIndex + 1} has run_at without timezone offset`,
+						);
+					}
+				}
 				const importJob = (await pinBridgeApiRequest.call(
 					this,
 					'POST',
@@ -1958,6 +1971,13 @@ export class PinBridge implements INodeType {
 					const accountId = this.getNodeParameter('accountId', itemIndex) as string;
 					const boardId = this.getNodeParameter('boardId', itemIndex) as string;
 					const runAt = String(this.getNodeParameter('runAt', itemIndex));
+					if (!hasExplicitTimezoneOffset(runAt)) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'Run At must include a timezone offset (for example 2026-03-06T10:00:00Z)',
+							{ itemIndex },
+						);
+					}
 					const title = this.getNodeParameter('title', itemIndex) as string;
 					const description = this.getNodeParameter('description', itemIndex, '') as string;
 					const linkUrl = this.getNodeParameter('linkUrl', itemIndex, '') as string;
