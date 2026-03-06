@@ -67,6 +67,7 @@ interface PinBridgeImportJobResult {
 	row_number: number;
 	status: string;
 	pin_id?: string | null;
+	schedule_id?: string | null;
 	idempotency_key?: string | null;
 	error_code?: string | null;
 	error_message?: string | null;
@@ -255,6 +256,7 @@ function mapImportJobJson(job: PinBridgeImportJob): IDataObject {
 			rowNumber: result.row_number,
 			status: result.status,
 			pinId: result.pin_id ?? null,
+			scheduleId: result.schedule_id ?? null,
 			idempotencyKey: result.idempotency_key ?? null,
 			errorCode: result.error_code ?? null,
 			errorMessage: result.error_message ?? null,
@@ -349,9 +351,11 @@ async function fetchPaginatedCollection<TRecord>(
 	path: string,
 	limit: number,
 	returnAll: boolean,
+	baseQuery: IDataObject = {},
 ): Promise<TRecord[]> {
 	if (!returnAll) {
 		return (await pinBridgeApiRequest.call(context, 'GET', path, {
+			...baseQuery,
 			limit,
 			offset: 0,
 		})) as TRecord[];
@@ -364,6 +368,7 @@ async function fetchPaginatedCollection<TRecord>(
 
 	while (hasMore) {
 		const page = (await pinBridgeApiRequest.call(context, 'GET', path, {
+			...baseQuery,
 			limit: pageSize,
 			offset,
 		})) as TRecord[];
@@ -871,6 +876,72 @@ export class PinBridge implements INodeType {
 				},
 				default: 50,
 				description: 'Max number of records to return when Return All is disabled',
+			},
+			{
+				displayName: 'Import Status',
+				name: 'importStatus',
+				type: 'options',
+				displayOptions: {
+					show: {
+						resource: ['pins'],
+						operation: ['listImports'],
+					},
+				},
+				options: [
+					{
+						name: 'Any',
+						value: '',
+					},
+					{
+						name: 'Queued',
+						value: 'queued',
+					},
+					{
+						name: 'Processing',
+						value: 'processing',
+					},
+					{
+						name: 'Completed',
+						value: 'completed',
+					},
+					{
+						name: 'Completed With Errors',
+						value: 'completed_with_errors',
+					},
+					{
+						name: 'Failed',
+						value: 'failed',
+					},
+				],
+				default: '',
+				description: 'Optionally filter import jobs by processing status',
+			},
+			{
+				displayName: 'Import Source',
+				name: 'importSourceType',
+				type: 'options',
+				displayOptions: {
+					show: {
+						resource: ['pins'],
+						operation: ['listImports'],
+					},
+				},
+				options: [
+					{
+						name: 'Any',
+						value: '',
+					},
+					{
+						name: 'JSON',
+						value: 'json',
+					},
+					{
+						name: 'CSV',
+						value: 'csv',
+					},
+				],
+				default: '',
+				description: 'Optionally filter import jobs by source type',
 			},
 			{
 				displayName: 'Media Source',
@@ -1555,11 +1626,21 @@ export class PinBridge implements INodeType {
 		if (resource === 'pins' && operation === 'listImports') {
 			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
 			const limit = this.getNodeParameter('limit', 0, 50) as number;
+			const importStatus = this.getNodeParameter('importStatus', 0, '') as string;
+			const importSourceType = this.getNodeParameter('importSourceType', 0, '') as string;
+			const query: IDataObject = {};
+			if (importStatus) {
+				query.status = importStatus;
+			}
+			if (importSourceType) {
+				query.source_type = importSourceType;
+			}
 			const imports = await fetchPaginatedCollection<PinBridgeImportJob>(
 				this,
 				'/v1/pins/imports',
 				limit,
 				returnAll,
+				query,
 			);
 
 			for (const importJob of imports) {

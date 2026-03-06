@@ -2,7 +2,7 @@
 
 PinBridge community node for n8n. It publishes, schedules, and manages Pinterest workflows through the PinBridge API.
 
-This repo targets PinBridge v1.0.0.
+This repo targets PinBridge v1.0.2.
 
 ## Features
 
@@ -15,7 +15,11 @@ This repo targets PinBridge v1.0.0.
 - Pins:
   - Delete Pin
   - Get Pin
+  - Get Import
+  - Import CSV
+  - Import JSON
   - List Pins
+  - List Imports
   - Publish Pin (item-by-item bulk from incoming n8n items)
   - Get Pin Status (job status)
 - Assets:
@@ -124,6 +128,24 @@ Calls `GET /v1/pins`.
 
 ### Pins -> Get Status
 Calls `GET /v1/jobs/{job_id}`.
+
+### Pins -> Import JSON
+Calls `POST /v1/pins/imports/json`.
+Rows can optionally include `run_at` as an absolute ISO 8601 timestamp with timezone offset.
+Rows without `run_at` are queued for immediate publishing.
+
+### Pins -> Import CSV
+Calls `POST /v1/pins/imports/csv`.
+`run_at` column is optional per row (same behavior as JSON import).
+
+### Pins -> Get Import
+Calls `GET /v1/pins/imports/{job_id}`.
+
+### Pins -> List Imports
+Calls `GET /v1/pins/imports`.
+Optional filters:
+- `status` (`queued`, `processing`, `completed`, `completed_with_errors`, `failed`)
+- `source_type` (`json`, `csv`)
 
 ### Pins -> Delete
 Calls `DELETE /v1/pins/{pin_id}`.

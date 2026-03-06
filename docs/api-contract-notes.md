@@ -89,8 +89,12 @@ Source of truth examined:
   - each row follows the same shape as `PinCreate`
   - required per row: `account_id`, `board_id`, `title`, `idempotency_key`
   - row must include either `image_url` or `asset_id`
+  - row may include `run_at` (absolute ISO 8601 timestamp with timezone offset)
+    - missing `run_at`: queue immediately
+    - provided `run_at`: create a schedule for that row
 - Response: `ImportJobResponse`
   - `id`, `source_type`, `status`, row counters, timestamps, and per-row `results[]`
+  - row results can include `schedule_id` when the row is scheduled
 - Node strategy:
   - aggregate all incoming n8n items into one request body
   - return a single n8n item representing the created import job
@@ -117,6 +121,8 @@ Source of truth examined:
 - Query:
   - `limit` (integer, optional)
   - `offset` (integer, optional)
+  - `status` (enum, optional)
+  - `source_type` (enum, optional)
 - Response: `ImportJobResponse[]`
 
 ## Error response format
