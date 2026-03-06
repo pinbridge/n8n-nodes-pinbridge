@@ -107,10 +107,14 @@ Calls `GET /v1/assets/{asset_id}`.
 Calls `POST /v1/pins` with:
 - `account_id`
 - `board_id`
-- `title`
-- `description` (optional)
-- `link_url` (optional)
+- `title` (max 100 chars)
+- `description` (optional, max 800 chars)
+- `link_url` (optional, max 2048 chars)
+- `alt_text` (optional, max 500 chars)
+- `related_terms` (optional)
+- `dominant_color` (optional, hex)
 - `image_url` or `asset_id`
+- `cover_image_url` or `cover_image_asset_id` (optional, video pins)
 - `idempotency_key`
 
 Idempotency key defaults to `{{$execution.id}}-{{$itemIndex}}`.
@@ -146,7 +150,12 @@ Optional filters:
 Calls `DELETE /v1/pins/{pin_id}`.
 
 ### Schedules -> Create
-Calls `POST /v1/schedules` with `image_url` or `asset_id`.
+Calls `POST /v1/schedules` with:
+- `title` (max 100 chars)
+- `description` (optional, max 800 chars)
+- `link_url` (optional, max 2048 chars)
+- `image_url` or `asset_id`
+- `cover_image_url` or `cover_image_asset_id` (optional, video pins)
 `Run At` must be an absolute ISO 8601 timestamp with timezone offset.
 
 ### Schedules -> Get

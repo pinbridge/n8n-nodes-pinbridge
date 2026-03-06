@@ -36,6 +36,10 @@ interface PinBridgePinRecord {
 	media_type: string;
 	title: string;
 	description?: string | null;
+	related_terms?: string[] | null;
+	alt_text?: string | null;
+	dominant_color?: string | null;
+	cover_image_url?: string | null;
 	link_url?: string | null;
 	media_url: string;
 	image_url: string;
@@ -109,6 +113,7 @@ interface PinBridgeSchedule {
 		media_url?: string;
 		image_url?: string;
 		asset_id?: string | null;
+		cover_image_url?: string | null;
 		[key: string]: unknown;
 	};
 	last_error?: string | null;
@@ -205,6 +210,10 @@ function mapPinJson(pin: PinBridgePinRecord): IDataObject {
 		mediaType: pin.media_type,
 		title: pin.title,
 		description: pin.description ?? null,
+		relatedTerms: pin.related_terms ?? null,
+		altText: pin.alt_text ?? null,
+		dominantColor: pin.dominant_color ?? null,
+		coverImageUrl: pin.cover_image_url ?? null,
 		linkUrl: pin.link_url ?? null,
 		mediaUrl: pin.media_url,
 		imageUrl: pin.image_url,
@@ -281,6 +290,7 @@ function mapScheduleJson(schedule: PinBridgeSchedule): IDataObject {
 		mediaUrl: schedule.payload.media_url ?? null,
 		imageUrl: schedule.payload.image_url ?? null,
 		assetId: schedule.payload.asset_id ?? null,
+		coverImageUrl: schedule.payload.cover_image_url ?? null,
 		pinId: schedule.pin_id ?? null,
 		lastError: schedule.last_error ?? null,
 		createdAt: schedule.created_at,
@@ -983,7 +993,7 @@ export class PinBridge implements INodeType {
 				},
 				default: '',
 				required: true,
-				description: 'Pin title (max 500 characters)',
+				description: 'Pin title (max 100 characters)',
 			},
 			{
 				displayName: 'Description',
@@ -999,7 +1009,7 @@ export class PinBridge implements INodeType {
 					},
 				},
 				default: '',
-				description: 'Optional pin description',
+				description: 'Optional pin description (max 800 characters)',
 			},
 			{
 				displayName: 'Link URL',
@@ -1012,7 +1022,104 @@ export class PinBridge implements INodeType {
 					},
 				},
 				default: '',
-				description: 'Optional destination URL for the pin',
+				description: 'Optional destination URL for the pin (max 2048 characters)',
+			},
+			{
+				displayName: 'Alt Text',
+				name: 'altText',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['pins'],
+						operation: ['publish'],
+					},
+				},
+				default: '',
+				description: 'Optional accessibility alt text sent to Pinterest (max 500 characters)',
+			},
+			{
+				displayName: 'Related Terms',
+				name: 'relatedTerms',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['pins'],
+						operation: ['publish'],
+					},
+				},
+				default: '',
+				description: 'Optional comma-separated related terms for Pinterest',
+			},
+			{
+				displayName: 'Dominant Color',
+				name: 'dominantColor',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['pins'],
+						operation: ['publish'],
+					},
+				},
+				default: '',
+				description: 'Optional dominant media color in hex format (for example #6E7874)',
+			},
+			{
+				displayName: 'Video Cover Source',
+				name: 'coverImageSource',
+				type: 'options',
+				displayOptions: {
+					show: {
+						resource: ['pins', 'schedules'],
+						operation: ['publish', 'create'],
+					},
+				},
+				options: [
+					{
+						name: 'None (API Default)',
+						value: 'none',
+					},
+					{
+						name: 'Public Image URL',
+						value: 'url',
+					},
+					{
+						name: 'Uploaded Asset',
+						value: 'asset',
+					},
+				],
+				default: 'none',
+				description:
+					'Optional cover for video pins: leave empty to let Pinterest use keyframe/default behavior',
+			},
+			{
+				displayName: 'Cover Image URL',
+				name: 'coverImageUrl',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['pins', 'schedules'],
+						operation: ['publish', 'create'],
+						coverImageSource: ['url'],
+					},
+				},
+				default: '',
+				required: true,
+				description: 'Public URL for a video cover image (max 2048 characters)',
+			},
+			{
+				displayName: 'Cover Image Asset ID',
+				name: 'coverImageAssetId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['pins', 'schedules'],
+						operation: ['publish', 'create'],
+						coverImageSource: ['asset'],
+					},
+				},
+				default: '={{$json["id"]}}',
+				required: true,
+				description: 'PinBridge uploaded image asset ID used as a video cover image',
 			},
 			{
 				displayName: 'Image URL',
@@ -1761,7 +1868,15 @@ export class PinBridge implements INodeType {
 					const title = this.getNodeParameter('title', itemIndex) as string;
 					const description = this.getNodeParameter('description', itemIndex, '') as string;
 					const linkUrl = this.getNodeParameter('linkUrl', itemIndex, '') as string;
+					const altText = this.getNodeParameter('altText', itemIndex, '') as string;
+					const relatedTerms = this.getNodeParameter('relatedTerms', itemIndex, '') as string;
+					const dominantColor = this.getNodeParameter('dominantColor', itemIndex, '') as string;
 					const imageSource = this.getNodeParameter('imageSource', itemIndex) as string;
+					const coverImageSource = this.getNodeParameter(
+						'coverImageSource',
+						itemIndex,
+						'none',
+					) as string;
 					const idempotencyKey = this.getNodeParameter('idempotencyKey', itemIndex) as string;
 
 					const body: IDataObject = {
@@ -1781,6 +1896,24 @@ export class PinBridge implements INodeType {
 					}
 					if (linkUrl) {
 						body.link_url = linkUrl;
+					}
+					if (altText) {
+						body.alt_text = altText;
+					}
+					if (relatedTerms) {
+						body.related_terms = relatedTerms;
+					}
+					if (dominantColor) {
+						body.dominant_color = dominantColor;
+					}
+					if (coverImageSource === 'url') {
+						body.cover_image_url = this.getNodeParameter('coverImageUrl', itemIndex) as string;
+					}
+					if (coverImageSource === 'asset') {
+						body.cover_image_asset_id = this.getNodeParameter(
+							'coverImageAssetId',
+							itemIndex,
+						) as string;
 					}
 
 					const pin = (await pinBridgeApiRequest.call(
@@ -1982,6 +2115,11 @@ export class PinBridge implements INodeType {
 					const description = this.getNodeParameter('description', itemIndex, '') as string;
 					const linkUrl = this.getNodeParameter('linkUrl', itemIndex, '') as string;
 					const imageSource = this.getNodeParameter('imageSource', itemIndex) as string;
+					const coverImageSource = this.getNodeParameter(
+						'coverImageSource',
+						itemIndex,
+						'none',
+					) as string;
 
 					const body: IDataObject = {
 						account_id: accountId,
@@ -2000,6 +2138,15 @@ export class PinBridge implements INodeType {
 					}
 					if (linkUrl) {
 						body.link_url = linkUrl;
+					}
+					if (coverImageSource === 'url') {
+						body.cover_image_url = this.getNodeParameter('coverImageUrl', itemIndex) as string;
+					}
+					if (coverImageSource === 'asset') {
+						body.cover_image_asset_id = this.getNodeParameter(
+							'coverImageAssetId',
+							itemIndex,
+						) as string;
 					}
 
 					const schedule = (await pinBridgeApiRequest.call(
