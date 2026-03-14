@@ -2,7 +2,7 @@
 
 PinBridge community node for n8n. It publishes, schedules, and manages Pinterest workflows through the PinBridge API.
 
-This repo targets PinBridge v1.2.2.
+This repo targets PinBridge v1.2.3.
 
 ## Features
 

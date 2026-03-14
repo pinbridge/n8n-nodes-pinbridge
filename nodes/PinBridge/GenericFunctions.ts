@@ -76,7 +76,7 @@ export async function getPinBridgeClient(this: PinBridgeContext): Promise<PinBri
 		baseUrl: credentials.baseUrl,
 		apiKey: credentials.apiKey,
 		executor: async <TResponse = unknown>(request: PinBridgeHttpRequest): Promise<TResponse> => {
-			const requestOptions: IHttpRequestOptions & { formData?: FormData } = {
+			const requestOptions: IHttpRequestOptions = {
 				method: request.method,
 				url: request.url,
 				headers: request.headers,
@@ -86,7 +86,7 @@ export async function getPinBridgeClient(this: PinBridgeContext): Promise<PinBri
 				requestOptions.body = request.body as IDataObject | IDataObject[];
 			}
 			if (request.formData !== undefined) {
-				requestOptions.formData = request.formData;
+				requestOptions.body = request.formData;
 			}
 
 			return (await this.helpers.httpRequest.call(this, requestOptions)) as TResponse;
