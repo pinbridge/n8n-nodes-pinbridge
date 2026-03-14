@@ -2,7 +2,7 @@
 
 PinBridge community node for n8n. It publishes, schedules, and manages Pinterest workflows through the PinBridge API.
 
-This repo targets PinBridge v1.0.2.
+This repo targets PinBridge v1.2.0.
 
 ## Features
 
@@ -12,6 +12,9 @@ This repo targets PinBridge v1.0.2.
   - Delete Board
   - List Boards
   - Board dropdown via loadOptions
+- Terms:
+  - List Related Terms
+  - Optional exact-match filtering
 - Pins:
   - Delete Pin
   - Get Pin
@@ -93,6 +96,11 @@ Calls `POST /v1/pinterest/boards`.
 
 ### Boards -> Delete
 Calls `DELETE /v1/pinterest/boards/{board_id}?account_id=...`.
+
+### Terms -> List Related
+Calls `GET /v1/pinterest/terms/related?account_id=...&terms=...&exact_match=...`.
+`Terms` accepts a comma-separated list. `Exact Match` keeps only groups whose returned `term`
+exactly matches one requested term after PinBridge normalization.
 
 ### Assets -> Upload Image
 Calls `POST /v1/assets/images` with `multipart/form-data` from an incoming n8n binary property.

@@ -28,6 +28,20 @@ interface PinBridgeBoard {
 	[key: string]: unknown;
 }
 
+interface PinBridgeRelatedTermsItem {
+	term: string;
+	related_terms: string[];
+	[key: string]: unknown;
+}
+
+interface PinBridgeRelatedTermsResponse {
+	id: string;
+	related_term_count: number;
+	related_terms_list: PinBridgeRelatedTermsItem[];
+	exact_match: boolean;
+	[key: string]: unknown;
+}
+
 interface PinBridgePinRecord {
 	id: string;
 	workspace_id: string;
@@ -188,6 +202,22 @@ function mapBoardJson(board: PinBridgeBoard): IDataObject {
 		description: board.description ?? null,
 		privacy: board.privacy ?? null,
 		raw: board as unknown as IDataObject,
+	};
+}
+
+function mapRelatedTermsJson(
+	response: PinBridgeRelatedTermsResponse,
+	group: PinBridgeRelatedTermsItem,
+): IDataObject {
+	return {
+		requestId: response.id,
+		term: group.term,
+		relatedTerms: group.related_terms,
+		relatedTermCount: group.related_terms.length,
+		totalRelatedTermCount: response.related_term_count,
+		exactMatch: response.exact_match,
+		rawGroup: group as unknown as IDataObject,
+		rawResponse: response as unknown as IDataObject,
 	};
 }
 
@@ -431,6 +461,10 @@ export class PinBridge implements INodeType {
 						value: 'boards',
 					},
 					{
+						name: 'Terms',
+						value: 'terms',
+					},
+					{
 						name: 'Pins',
 						value: 'pins',
 					},
@@ -510,6 +544,25 @@ export class PinBridge implements INodeType {
 					},
 				],
 				default: 'list',
+			},
+			{
+				displayName: 'Operation',
+				name: 'operation',
+				type: 'options',
+				noDataExpression: true,
+				displayOptions: {
+					show: {
+						resource: ['terms'],
+					},
+				},
+				options: [
+					{
+						name: 'List Related',
+						value: 'listRelated',
+						action: 'List related terms',
+					},
+				],
+				default: 'listRelated',
 			},
 			{
 				displayName: 'Operation',
@@ -722,6 +775,23 @@ export class PinBridge implements INodeType {
 				},
 				displayOptions: {
 					show: {
+						resource: ['terms'],
+						operation: ['listRelated'],
+					},
+				},
+				default: '',
+				required: true,
+				description: 'Pinterest connection/account ID used for the related-terms lookup',
+			},
+			{
+				displayName: 'Connection',
+				name: 'accountId',
+				type: 'options',
+				typeOptions: {
+					loadOptionsMethod: 'getAccounts',
+				},
+				displayOptions: {
+					show: {
 						resource: ['pins'],
 						operation: ['publish'],
 					},
@@ -890,6 +960,35 @@ export class PinBridge implements INodeType {
 				},
 				default: 50,
 				description: 'Max number of records to return when Return All is disabled',
+			},
+			{
+				displayName: 'Terms',
+				name: 'termsInput',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['terms'],
+						operation: ['listRelated'],
+					},
+				},
+				default: '',
+				required: true,
+				description:
+					'One or more terms to look up. Separate multiple values with commas.',
+			},
+			{
+				displayName: 'Exact Match',
+				name: 'exactMatch',
+				type: 'boolean',
+				displayOptions: {
+					show: {
+						resource: ['terms'],
+						operation: ['listRelated'],
+					},
+				},
+				default: false,
+				description:
+					'Whether to keep only groups whose returned term exactly matches one requested term',
 			},
 			{
 				displayName: 'Import Status',
@@ -1514,6 +1613,48 @@ export class PinBridge implements INodeType {
 			const selectedBoards = returnAll ? boards : boards.slice(0, limit);
 			for (const board of selectedBoards) {
 				returnData.push({ json: mapBoardJson(board) });
+			}
+
+			return [returnData];
+		}
+
+		if (resource === 'terms' && operation === 'listRelated') {
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					const accountId = this.getNodeParameter('accountId', itemIndex) as string;
+					const termsInput = this.getNodeParameter('termsInput', itemIndex) as string;
+					const exactMatch = this.getNodeParameter('exactMatch', itemIndex, false) as boolean;
+
+					const response = (await pinBridgeApiRequest.call(
+						this,
+						'GET',
+						'/v1/pinterest/terms/related',
+						{
+							account_id: accountId,
+							terms: termsInput,
+							exact_match: exactMatch,
+						},
+					)) as PinBridgeRelatedTermsResponse;
+
+					for (const group of response.related_terms_list) {
+						returnData.push({
+							json: mapRelatedTermsJson(response, group),
+							pairedItem: { item: itemIndex },
+						});
+					}
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({
+							json: {
+								error: (error as Error).message,
+								itemIndex,
+							},
+							pairedItem: { item: itemIndex },
+						});
+						continue;
+					}
+					throw error;
+				}
 			}
 
 			return [returnData];
