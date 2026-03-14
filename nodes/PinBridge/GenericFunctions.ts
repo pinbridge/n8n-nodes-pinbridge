@@ -1,3 +1,4 @@
+import type FormData from 'form-data';
 import type {
 	IDataObject,
 	IExecuteFunctions,

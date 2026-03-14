@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-pinbridge",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "n8n community node for PinBridge",
   "license": "MIT",
   "keywords": [
@@ -36,6 +36,7 @@
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",
+    "form-data": "^4.0.0",
     "typescript": "^5.6.3"
   },
   "peerDependencies": {
