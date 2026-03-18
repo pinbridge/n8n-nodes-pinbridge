@@ -1,4 +1,3 @@
-import FormData from 'form-data';
 import type {
 	IDataObject,
 	IExecuteFunctions,
@@ -1789,10 +1788,7 @@ export class PinBridge implements INodeType {
 						binaryData.fileName || (isVideoUpload ? 'pin-video.mp4' : 'pin-image.png');
 					const mimeType =
 						binaryData.mimeType || (isVideoUpload ? 'video/mp4' : 'image/png');
-					formData.append('file', buffer, {
-						filename,
-						contentType: mimeType,
-					});
+					formData.append('file', new Blob([buffer], { type: mimeType }), filename);
 					const assetPath = isVideoUpload ? '/v1/assets/videos' : '/v1/assets/images';
 
 					const asset = (await pinBridgeMultipartRequest.call(
@@ -1970,10 +1966,7 @@ export class PinBridge implements INodeType {
 
 					const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, binaryData);
 					const formData = new FormData();
-					formData.append('file', buffer, {
-						filename: binaryData.fileName || 'pin-import.csv',
-						contentType: binaryData.mimeType || 'text/csv',
-					});
+					formData.append('file', new Blob([buffer], { type: binaryData.mimeType || 'text/csv' }), binaryData.fileName || 'pin-import.csv');
 
 					const importJob = (await pinBridgeMultipartRequest.call(
 						this,

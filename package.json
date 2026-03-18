@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-pinbridge",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "n8n community node for PinBridge — publish, schedule, and manage Pinterest workflows via the PinBridge API",
   "license": "MIT",
   "keywords": [
@@ -45,9 +45,7 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "prepublishOnly": "npm run build"
   },
-  "dependencies": {
-    "form-data": "^4.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.17.57",
     "@typescript-eslint/eslint-plugin": "^7.18.0",

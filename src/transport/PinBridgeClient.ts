@@ -1,5 +1,3 @@
-import type FormData from 'form-data';
-
 export type PinBridgeMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface PinBridgeQuery {
