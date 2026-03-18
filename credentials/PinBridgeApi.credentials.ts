@@ -1,4 +1,9 @@
-import type { ICredentialType, IHttpRequestMethods, INodeProperties } from 'n8n-workflow';
+import type {
+	IAuthenticate,
+	ICredentialTestRequest,
+	ICredentialType,
+	INodeProperties,
+} from 'n8n-workflow';
 
 export class PinBridgeApi implements ICredentialType {
 	name = 'pinBridgeApi';
@@ -29,20 +34,19 @@ export class PinBridgeApi implements ICredentialType {
 		},
 	];
 
-	authenticate = {
+	authenticate: IAuthenticate = {
 		type: 'generic',
 		properties: {
 			headers: {
 				'X-API-Key': '={{$credentials.apiKey}}',
 			},
 		},
-	} as const;
+	};
 
-	test = {
+	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.baseUrl}}',
 			url: '/v1/pinterest/accounts',
-			method: 'GET' as IHttpRequestMethods,
 		},
 	};
 }
