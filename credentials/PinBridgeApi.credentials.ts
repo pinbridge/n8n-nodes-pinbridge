@@ -3,7 +3,7 @@ import type { ICredentialType, IHttpRequestMethods, INodeProperties } from 'n8n-
 export class PinBridgeApi implements ICredentialType {
 	name = 'pinBridgeApi';
 	displayName = 'PinBridge API Key';
-	documentationUrl = 'https://docs.n8n.io/integrations/creating-nodes/';
+	documentationUrl = 'https://github.com/pinbridge/n8n-nodes-pinbridge#authentication';
 
 	properties: INodeProperties[] = [
 		{

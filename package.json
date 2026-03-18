@@ -1,19 +1,35 @@
 {
   "name": "n8n-nodes-pinbridge",
-  "version": "1.2.3",
-  "description": "n8n community node for PinBridge",
+  "version": "1.2.4",
+  "description": "n8n community node for PinBridge — publish, schedule, and manage Pinterest workflows via the PinBridge API",
   "license": "MIT",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
     "n8n-nodes",
-    "pinbridge"
+    "pinbridge",
+    "pinterest",
+    "social-media",
+    "automation",
+    "publishing",
+    "scheduling"
   ],
-  "homepage": "",
-  "author": "",
+  "homepage": "https://www.pinbridge.io",
+  "author": {
+    "name": "PinBridge",
+    "email": "contact@pinbridge.io",
+    "url": "https://www.pinbridge.io"
+  },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/pinbridge/n8n-nodes-pinbridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pinbridge/n8n-nodes-pinbridge/issues"
+  },
+  "engines": {
+    "node": ">=18.10",
+    "n8n": ">=1.0.0"
   },
   "files": [
     "dist"
@@ -26,17 +42,18 @@
     "clean": "rm -rf dist",
     "dev": "tsc -w -p tsconfig.json",
     "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "lint:fix": "eslint . --ext .ts --fix",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "form-data": "^4.0.0",
-    "n8n-workflow": "^1.95.0"
+    "form-data": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.57",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",
+    "n8n-workflow": "^1.95.0",
     "typescript": "^5.6.3"
   },
   "peerDependencies": {

@@ -242,6 +242,19 @@ Calls `DELETE /v1/webhooks/{webhook_id}`.
 2. Choose the Connection.
 3. Branch in n8n based on `accountTokensAvailable` or `globalTokensAvailable`.
 
+## Limitations
+
+- This node targets PinBridge v1 API endpoints only.
+- Admin, billing-management, and password-reset endpoints are not included.
+- Upload Image and Upload Video operations require an incoming binary property in the n8n workflow.
+- Rate limits are governed by your PinBridge plan and the underlying Pinterest API quotas.
+
+## Support
+
+- Bug reports and feature requests: [GitHub Issues](https://github.com/pinbridge/n8n-nodes-pinbridge/issues)
+- General questions: [contact@pinbridge.io](mailto:contact@pinbridge.io)
+- PinBridge product: [https://pinbridge.io](https://pinbridge.io)
+
 ## Development
 
 ```bash
@@ -250,3 +263,7 @@ npm run lint
 npm run build
 npm run dev
 ```
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
