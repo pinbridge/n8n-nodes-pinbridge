@@ -27,7 +27,6 @@ export type PinBridgeRequestExecutor = <TResponse = unknown>(
 
 export interface PinBridgeClientConfig {
 	baseUrl: string;
-	apiKey: string;
 	executor: PinBridgeRequestExecutor;
 }
 
@@ -175,7 +174,6 @@ export class PinBridgeClient {
 
 		const headers: Record<string, string> = {
 			Accept: 'application/json',
-			'X-API-Key': this.config.apiKey,
 			...options.headers,
 		};
 

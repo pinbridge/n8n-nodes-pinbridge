@@ -1,4 +1,5 @@
 import type {
+	IAllExecuteFunctions,
 	IDataObject,
 	IExecuteFunctions,
 	IHttpRequestOptions,
@@ -18,25 +19,18 @@ type PinBridgeContext = IExecuteFunctions | ILoadOptionsFunctions;
 
 interface PinBridgeCredentials {
 	baseUrl: string;
-	apiKey: string;
 }
 
 async function getPinBridgeCredentials(this: PinBridgeContext): Promise<PinBridgeCredentials> {
 	const rawCredentials = await this.getCredentials('pinBridgeApi');
 	const baseUrl = String(rawCredentials.baseUrl ?? '').trim();
-	const apiKey = String(rawCredentials.apiKey ?? '').trim();
 
 	if (!baseUrl) {
 		throw new NodeOperationError(this.getNode(), 'PinBridge base URL is required in credentials.');
 	}
 
-	if (!apiKey) {
-		throw new NodeOperationError(this.getNode(), 'PinBridge API key is required in credentials.');
-	}
-
 	return {
 		baseUrl,
-		apiKey,
 	};
 }
 
@@ -73,7 +67,6 @@ export async function getPinBridgeClient(this: PinBridgeContext): Promise<PinBri
 
 	return new PinBridgeClient({
 		baseUrl: credentials.baseUrl,
-		apiKey: credentials.apiKey,
 		executor: async <TResponse = unknown>(request: PinBridgeHttpRequest): Promise<TResponse> => {
 			const requestOptions: IHttpRequestOptions = {
 				method: request.method,
@@ -88,7 +81,11 @@ export async function getPinBridgeClient(this: PinBridgeContext): Promise<PinBri
 				requestOptions.body = request.formData;
 			}
 
-			return (await this.helpers.httpRequest.call(this, requestOptions)) as TResponse;
+			return (await this.helpers.httpRequestWithAuthentication.call(
+				this as IAllExecuteFunctions,
+				'pinBridgeApi',
+				requestOptions,
+			)) as TResponse;
 		},
 	});
 }
