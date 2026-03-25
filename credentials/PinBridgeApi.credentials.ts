@@ -2,6 +2,7 @@ import type {
 	IAuthenticate,
 	ICredentialTestRequest,
 	ICredentialType,
+	Icon,
 	INodeProperties,
 } from 'n8n-workflow';
 
@@ -9,6 +10,7 @@ export class PinBridgeApi implements ICredentialType {
 	name = 'pinBridgeApi';
 	displayName = 'PinBridge API Key';
 	documentationUrl = 'https://github.com/pinbridge/n8n-nodes-pinbridge#authentication';
+	icon: Icon = 'file:pinbridge.svg';
 
 	properties: INodeProperties[] = [
 		{

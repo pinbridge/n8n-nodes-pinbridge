@@ -7,7 +7,7 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeConnectionTypes as NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 
 import { pinBridgeApiRequest, pinBridgeMultipartRequest } from './GenericFunctions';
 
@@ -437,8 +437,8 @@ export class PinBridge implements INodeType {
 		defaults: {
 			name: 'PinBridge',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionType.Main],
+		outputs: [NodeConnectionType.Main],
 		credentials: [
 			{
 				name: 'pinBridgeApi',
@@ -453,35 +453,35 @@ export class PinBridge implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						name: 'Assets',
+						name: 'Asset',
 						value: 'assets',
 					},
 					{
-						name: 'Boards',
+						name: 'Board',
 						value: 'boards',
 					},
 					{
-						name: 'Terms',
-						value: 'terms',
-					},
-					{
-						name: 'Pins',
-						value: 'pins',
-					},
-					{
-						name: 'Schedules',
-						value: 'schedules',
-					},
-					{
-						name: 'Connections',
+						name: 'Connection',
 						value: 'connections',
+					},
+					{
+						name: 'Pin',
+						value: 'pins',
 					},
 					{
 						name: 'Rate Meter',
 						value: 'rateMeter',
 					},
 					{
-						name: 'Webhooks',
+						name: 'Schedule',
+						value: 'schedules',
+					},
+					{
+						name: 'Terms',
+						value: 'terms',
+					},
+					{
+						name: 'Webhook',
 						value: 'webhooks',
 					},
 				],
@@ -1612,7 +1612,10 @@ export class PinBridge implements INodeType {
 
 			const selectedBoards = returnAll ? boards : boards.slice(0, limit);
 			for (const board of selectedBoards) {
-				returnData.push({ json: mapBoardJson(board) });
+				returnData.push({
+					json: mapBoardJson(board),
+					pairedItem: { item: 0 },
+				});
 			}
 
 			return [returnData];
@@ -1671,7 +1674,10 @@ export class PinBridge implements INodeType {
 
 			const selectedAccounts = returnAll ? accounts : accounts.slice(0, limit);
 			for (const account of selectedAccounts) {
-				returnData.push({ json: mapConnectionJson(account) });
+				returnData.push({
+					json: mapConnectionJson(account),
+					pairedItem: { item: 0 },
+				});
 			}
 
 			return [returnData];
@@ -1684,7 +1690,10 @@ export class PinBridge implements INodeType {
 				'/v1/pinterest/oauth/start',
 			)) as PinBridgeOAuthStartResponse;
 
-			return [[{ json: { authorizationUrl: oauthStart.authorization_url, raw: oauthStart } }]];
+			return [[{
+				json: { authorizationUrl: oauthStart.authorization_url, raw: oauthStart },
+				pairedItem: { item: 0 },
+			}]];
 		}
 
 		if (resource === 'connections' && operation === 'completeOAuth') {
@@ -1869,7 +1878,10 @@ export class PinBridge implements INodeType {
 			);
 
 			for (const pin of pins) {
-				returnData.push({ json: mapPinJson(pin) });
+				returnData.push({
+					json: mapPinJson(pin),
+					pairedItem: { item: 0 },
+				});
 			}
 
 			return [returnData];
@@ -1896,7 +1908,10 @@ export class PinBridge implements INodeType {
 			);
 
 			for (const importJob of imports) {
-				returnData.push({ json: mapImportJobJson(importJob) });
+				returnData.push({
+					json: mapImportJobJson(importJob),
+					pairedItem: { item: 0 },
+				});
 			}
 
 			return [returnData];
@@ -1913,7 +1928,10 @@ export class PinBridge implements INodeType {
 			);
 
 			for (const schedule of schedules) {
-				returnData.push({ json: mapScheduleJson(schedule) });
+				returnData.push({
+					json: mapScheduleJson(schedule),
+					pairedItem: { item: 0 },
+				});
 			}
 
 			return [returnData];
@@ -1939,10 +1957,16 @@ export class PinBridge implements INodeType {
 					rows,
 				)) as PinBridgeImportJob;
 
-				return [[{ json: mapImportJobJson(importJob) }]];
+				return [[{
+					json: mapImportJobJson(importJob),
+					pairedItem: { item: 0 },
+				}]];
 			} catch (error) {
 				if (this.continueOnFail()) {
-					return [[{ json: { error: (error as Error).message } }]];
+					return [[{
+						json: { error: (error as Error).message },
+						pairedItem: { item: 0 },
+					}]];
 				}
 				throw error;
 			}
@@ -2492,7 +2516,10 @@ export class PinBridge implements INodeType {
 
 			const selectedWebhooks = returnAll ? webhooks : webhooks.slice(0, limit);
 			for (const webhook of selectedWebhooks) {
-				returnData.push({ json: mapWebhookJson(webhook) });
+				returnData.push({
+					json: mapWebhookJson(webhook),
+					pairedItem: { item: 0 },
+				});
 			}
 
 			return [returnData];

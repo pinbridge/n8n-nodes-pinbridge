@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-pinbridge",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "n8n community node for PinBridge — publish, schedule, and manage Pinterest workflows via the PinBridge API",
   "license": "MIT",
   "keywords": [
@@ -38,7 +38,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json && npm run copy-assets",
-    "copy-assets": "mkdir -p dist/nodes/PinBridge && cp nodes/PinBridge/pinbridge.svg dist/nodes/PinBridge/pinbridge.svg",
+    "copy-assets": "mkdir -p dist/nodes/PinBridge dist/credentials && cp nodes/PinBridge/pinbridge.svg dist/nodes/PinBridge/pinbridge.svg && cp nodes/PinBridge/pinbridge.svg dist/credentials/pinbridge.svg",
     "clean": "rm -rf dist",
     "dev": "tsc -w -p tsconfig.json",
     "lint": "eslint . --ext .ts",
