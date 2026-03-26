@@ -477,7 +477,7 @@ export class PinBridge implements INodeType {
 						value: 'schedules',
 					},
 					{
-						name: 'Terms',
+						name: 'Term',
 						value: 'terms',
 					},
 					{
