@@ -1790,7 +1790,10 @@ export class PinBridge implements INodeType {
 						);
 					}
 
-					const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, binaryData);
+					const buffer = await this.helpers.getBinaryDataBuffer(
+						itemIndex,
+						binaryPropertyName,
+					);
 					const formData = new FormData();
 					const isVideoUpload = operation === 'uploadVideo';
 					const filename =
@@ -1988,7 +1991,10 @@ export class PinBridge implements INodeType {
 						);
 					}
 
-					const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, binaryData);
+					const buffer = await this.helpers.getBinaryDataBuffer(
+						itemIndex,
+						binaryPropertyName,
+					);
 					const formData = new FormData();
 					formData.append('file', new Blob([buffer], { type: binaryData.mimeType || 'text/csv' }), binaryData.fileName || 'pin-import.csv');
 
