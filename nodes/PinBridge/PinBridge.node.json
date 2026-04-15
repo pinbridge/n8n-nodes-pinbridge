@@ -1,0 +1,15 @@
+{
+	"node": "n8n-nodes-pinbridge.pinBridge",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": [
+		"Marketing & Content"
+	],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://docs.pinbridge.io"
+			}
+		]
+	}
+}

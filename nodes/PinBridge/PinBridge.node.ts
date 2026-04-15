@@ -1599,26 +1599,33 @@ export class PinBridge implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 
 		if (resource === 'boards' && operation === 'list') {
-			const accountId = this.getNodeParameter('accountId', 0) as string;
-			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
-			const limit = this.getNodeParameter('limit', 0, 50) as number;
+			try {
+				const accountId = this.getNodeParameter('accountId', 0) as string;
+				const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
+				const limit = this.getNodeParameter('limit', 0, 50) as number;
 
-			const boards = (await pinBridgeApiRequest.call(
-				this,
-				'GET',
-				'/v1/pinterest/boards',
-				{ account_id: accountId },
-			)) as PinBridgeBoard[];
+				const boards = (await pinBridgeApiRequest.call(
+					this,
+					'GET',
+					'/v1/pinterest/boards',
+					{ account_id: accountId },
+				)) as PinBridgeBoard[];
 
-			const selectedBoards = returnAll ? boards : boards.slice(0, limit);
-			for (const board of selectedBoards) {
-				returnData.push({
-					json: mapBoardJson(board),
-					pairedItem: { item: 0 },
-				});
+				const selectedBoards = returnAll ? boards : boards.slice(0, limit);
+				for (const board of selectedBoards) {
+					returnData.push({
+						json: mapBoardJson(board),
+						pairedItem: { item: 0 },
+					});
+				}
+
+				return [returnData];
+			} catch (error) {
+				if (this.continueOnFail()) {
+					return [[{ json: { error: (error as Error).message }, pairedItem: { item: 0 } }]];
+				}
+				throw error;
 			}
-
-			return [returnData];
 		}
 
 		if (resource === 'terms' && operation === 'listRelated') {
@@ -1664,36 +1671,50 @@ export class PinBridge implements INodeType {
 		}
 
 		if (resource === 'connections' && operation === 'list') {
-			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
-			const limit = this.getNodeParameter('limit', 0, 50) as number;
-			const accounts = (await pinBridgeApiRequest.call(
-				this,
-				'GET',
-				'/v1/pinterest/accounts',
-			)) as PinBridgeAccount[];
+			try {
+				const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
+				const limit = this.getNodeParameter('limit', 0, 50) as number;
+				const accounts = (await pinBridgeApiRequest.call(
+					this,
+					'GET',
+					'/v1/pinterest/accounts',
+				)) as PinBridgeAccount[];
 
-			const selectedAccounts = returnAll ? accounts : accounts.slice(0, limit);
-			for (const account of selectedAccounts) {
-				returnData.push({
-					json: mapConnectionJson(account),
-					pairedItem: { item: 0 },
-				});
+				const selectedAccounts = returnAll ? accounts : accounts.slice(0, limit);
+				for (const account of selectedAccounts) {
+					returnData.push({
+						json: mapConnectionJson(account),
+						pairedItem: { item: 0 },
+					});
+				}
+
+				return [returnData];
+			} catch (error) {
+				if (this.continueOnFail()) {
+					return [[{ json: { error: (error as Error).message }, pairedItem: { item: 0 } }]];
+				}
+				throw error;
 			}
-
-			return [returnData];
 		}
 
 		if (resource === 'connections' && operation === 'startOAuth') {
-			const oauthStart = (await pinBridgeApiRequest.call(
-				this,
-				'GET',
-				'/v1/pinterest/oauth/start',
-			)) as PinBridgeOAuthStartResponse;
+			try {
+				const oauthStart = (await pinBridgeApiRequest.call(
+					this,
+					'GET',
+					'/v1/pinterest/oauth/start',
+				)) as PinBridgeOAuthStartResponse;
 
-			return [[{
-				json: { authorizationUrl: oauthStart.authorization_url, raw: oauthStart },
-				pairedItem: { item: 0 },
-			}]];
+				return [[{
+					json: { authorizationUrl: oauthStart.authorization_url, raw: oauthStart },
+					pairedItem: { item: 0 },
+				}]];
+			} catch (error) {
+				if (this.continueOnFail()) {
+					return [[{ json: { error: (error as Error).message }, pairedItem: { item: 0 } }]];
+				}
+				throw error;
+			}
 		}
 
 		if (resource === 'connections' && operation === 'completeOAuth') {
@@ -1871,73 +1892,94 @@ export class PinBridge implements INodeType {
 		}
 
 		if (resource === 'pins' && operation === 'list') {
-			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
-			const limit = this.getNodeParameter('limit', 0, 50) as number;
-			const pins = await fetchPaginatedCollection<PinBridgePinRecord>(
-				this,
-				'/v1/pins',
-				limit,
-				returnAll,
-			);
+			try {
+				const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
+				const limit = this.getNodeParameter('limit', 0, 50) as number;
+				const pins = await fetchPaginatedCollection<PinBridgePinRecord>(
+					this,
+					'/v1/pins',
+					limit,
+					returnAll,
+				);
 
-			for (const pin of pins) {
-				returnData.push({
-					json: mapPinJson(pin),
-					pairedItem: { item: 0 },
-				});
+				for (const pin of pins) {
+					returnData.push({
+						json: mapPinJson(pin),
+						pairedItem: { item: 0 },
+					});
+				}
+
+				return [returnData];
+			} catch (error) {
+				if (this.continueOnFail()) {
+					return [[{ json: { error: (error as Error).message }, pairedItem: { item: 0 } }]];
+				}
+				throw error;
 			}
-
-			return [returnData];
 		}
 
 		if (resource === 'pins' && operation === 'listImports') {
-			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
-			const limit = this.getNodeParameter('limit', 0, 50) as number;
-			const importStatus = this.getNodeParameter('importStatus', 0, '') as string;
-			const importSourceType = this.getNodeParameter('importSourceType', 0, '') as string;
-			const query: IDataObject = {};
-			if (importStatus) {
-				query.status = importStatus;
-			}
-			if (importSourceType) {
-				query.source_type = importSourceType;
-			}
-			const imports = await fetchPaginatedCollection<PinBridgeImportJob>(
-				this,
-				'/v1/pins/imports',
-				limit,
-				returnAll,
-				query,
-			);
+			try {
+				const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
+				const limit = this.getNodeParameter('limit', 0, 50) as number;
+				const importStatus = this.getNodeParameter('importStatus', 0, '') as string;
+				const importSourceType = this.getNodeParameter('importSourceType', 0, '') as string;
+				const query: IDataObject = {};
+				if (importStatus) {
+					query.status = importStatus;
+				}
+				if (importSourceType) {
+					query.source_type = importSourceType;
+				}
+				const imports = await fetchPaginatedCollection<PinBridgeImportJob>(
+					this,
+					'/v1/pins/imports',
+					limit,
+					returnAll,
+					query,
+				);
 
-			for (const importJob of imports) {
-				returnData.push({
-					json: mapImportJobJson(importJob),
-					pairedItem: { item: 0 },
-				});
-			}
+				for (const importJob of imports) {
+					returnData.push({
+						json: mapImportJobJson(importJob),
+						pairedItem: { item: 0 },
+					});
+				}
 
-			return [returnData];
+				return [returnData];
+			} catch (error) {
+				if (this.continueOnFail()) {
+					return [[{ json: { error: (error as Error).message }, pairedItem: { item: 0 } }]];
+				}
+				throw error;
+			}
 		}
 
 		if (resource === 'schedules' && operation === 'list') {
-			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
-			const limit = this.getNodeParameter('limit', 0, 50) as number;
-			const schedules = await fetchPaginatedCollection<PinBridgeSchedule>(
-				this,
-				'/v1/schedules',
-				limit,
-				returnAll,
-			);
+			try {
+				const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
+				const limit = this.getNodeParameter('limit', 0, 50) as number;
+				const schedules = await fetchPaginatedCollection<PinBridgeSchedule>(
+					this,
+					'/v1/schedules',
+					limit,
+					returnAll,
+				);
 
-			for (const schedule of schedules) {
-				returnData.push({
-					json: mapScheduleJson(schedule),
-					pairedItem: { item: 0 },
-				});
+				for (const schedule of schedules) {
+					returnData.push({
+						json: mapScheduleJson(schedule),
+						pairedItem: { item: 0 },
+					});
+				}
+
+				return [returnData];
+			} catch (error) {
+				if (this.continueOnFail()) {
+					return [[{ json: { error: (error as Error).message }, pairedItem: { item: 0 } }]];
+				}
+				throw error;
 			}
-
-			return [returnData];
 		}
 
 		if (resource === 'pins' && operation === 'importJson') {
@@ -2512,23 +2554,30 @@ export class PinBridge implements INodeType {
 		}
 
 		if (resource === 'webhooks' && operation === 'list') {
-			const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
-			const limit = this.getNodeParameter('limit', 0, 50) as number;
-			const webhooks = (await pinBridgeApiRequest.call(
-				this,
-				'GET',
-				'/v1/webhooks',
-			)) as PinBridgeWebhook[];
+			try {
+				const returnAll = this.getNodeParameter('returnAll', 0) as boolean;
+				const limit = this.getNodeParameter('limit', 0, 50) as number;
+				const webhooks = (await pinBridgeApiRequest.call(
+					this,
+					'GET',
+					'/v1/webhooks',
+				)) as PinBridgeWebhook[];
 
-			const selectedWebhooks = returnAll ? webhooks : webhooks.slice(0, limit);
-			for (const webhook of selectedWebhooks) {
-				returnData.push({
-					json: mapWebhookJson(webhook),
-					pairedItem: { item: 0 },
-				});
+				const selectedWebhooks = returnAll ? webhooks : webhooks.slice(0, limit);
+				for (const webhook of selectedWebhooks) {
+					returnData.push({
+						json: mapWebhookJson(webhook),
+						pairedItem: { item: 0 },
+					});
+				}
+
+				return [returnData];
+			} catch (error) {
+				if (this.continueOnFail()) {
+					return [[{ json: { error: (error as Error).message }, pairedItem: { item: 0 } }]];
+				}
+				throw error;
 			}
-
-			return [returnData];
 		}
 
 		if (resource === 'webhooks' && operation === 'create') {
