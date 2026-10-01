@@ -17,15 +17,19 @@ Use this before submitting through the [n8n Creator Portal](https://www.n8n.io/c
 - [x] `documentationUrl` in credentials points to the GitHub README
 - [x] MIT license present
 - [x] README covers: what it does, installation, credentials, operations, examples, limitations, support
-- [x] GitHub Actions CI runs install + lint + build on Node 18 and 20
-- [x] SVG icon present at `nodes/PinBridge/pinbridge.svg` and copied to `dist/`
-- [x] Credential type declares `icon = 'file:pinbridge.svg'`
+- [x] GitHub Actions CI runs install + lint + test + build on Node 18 and 20
+- [x] SVG icon present at `nodes/PinBridge/pinbridge.svg` and copied to `dist/nodes/PinBridge/`
+- [x] Credential type declares `icon = 'file:../nodes/PinBridge/pinbridge.svg'`, which resolves from both source and `dist/`
 - [x] `inputs`/`outputs` use `NodeConnectionType.Main` (not deprecated string literals)
 - [x] Resource dropdown labels are singular and alphabetically ordered
 - [x] All output items include `pairedItem` metadata for item linking
 - [x] `getBinaryDataBuffer()` called with property name string (not `IBinaryData` object)
 - [x] All list/single-call operations wrapped with `continueOnFail()` try/catch
 - [x] Node codex file (`PinBridge.node.json`) present with `node`, `nodeVersion`, `codexVersion`, `categories`
+- [x] `usableAsTool: true` so the node works as an AI Agent tool
+- [x] No `.d.ts` files in the package (the scanner's credential filename rule rejects them)
+- [x] `npm test` runs the node against a mocked API (CI and publish workflows)
+- [x] Source and `npm pack` output pass `@n8n/scan-community-package` rules (only the themed-icon warning remains)
 
 ---
 
@@ -46,7 +50,7 @@ Confirm the package is live at: `https://www.npmjs.com/package/n8n-nodes-pinbrid
 
 ### 3. Test in a real n8n instance
 Install in a self-hosted n8n instance and verify:
-- [ ] Credential type `PinBridge API Key` appears
+- [ ] Credential type `PinBridge API` appears
 - [ ] Credential test (GET /v1/pinterest/accounts) succeeds with a valid key
 - [ ] PinBridge node loads and all resources/operations are selectable
 - [ ] Board dropdown (`loadOptions`) populates correctly
@@ -79,6 +83,6 @@ Key criteria typically checked during manual review:
 
 ## Notes
 
-- `form-data` remains as a runtime dependency — it is required for multipart uploads (images/video). This is acceptable; verified nodes may have non-n8n runtime deps.
+- The package has no runtime dependencies: multipart uploads use Node's native `FormData` and `Blob`.
 - The `src/transport/PinBridgeClient.ts` layer is intentionally decoupled from n8n internals. This is good practice.
 - `AGENTS.md` is not published to npm (not in `files`). No action needed.

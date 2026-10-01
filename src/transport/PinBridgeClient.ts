@@ -21,9 +21,16 @@ export interface PinBridgeHttpRequest {
 	formData?: FormData;
 }
 
-export type PinBridgeRequestExecutor = <TResponse = unknown>(
+/** Raw HTTP response. Executors must resolve for every status code, including 4xx/5xx. */
+export interface PinBridgeHttpResponse {
+	statusCode: number;
+	headers: Record<string, unknown>;
+	body: unknown;
+}
+
+export type PinBridgeRequestExecutor = (
 	request: PinBridgeHttpRequest,
-) => Promise<TResponse>;
+) => Promise<PinBridgeHttpResponse>;
 
 export interface PinBridgeClientConfig {
 	baseUrl: string;
@@ -34,16 +41,24 @@ interface PinBridgeApiErrorContext {
 	method: PinBridgeMethod;
 	path: string;
 	statusCode?: number;
-	detail?: unknown;
+	code?: string;
+	remediation?: string;
 	requestId?: string;
+	detail?: unknown;
 }
 
+/**
+ * A failed PinBridge call. `code`, `remediation` and `requestId` come from the API's
+ * documented error envelope (`{"error": {"code", "message", "remediation", "request_id"}}`).
+ */
 export class PinBridgeApiError extends Error {
 	readonly method: PinBridgeMethod;
 	readonly path: string;
 	readonly statusCode?: number;
-	readonly detail?: unknown;
+	readonly code?: string;
+	readonly remediation?: string;
 	readonly requestId?: string;
+	readonly detail?: unknown;
 
 	constructor(message: string, context: PinBridgeApiErrorContext) {
 		super(message);
@@ -51,8 +66,10 @@ export class PinBridgeApiError extends Error {
 		this.method = context.method;
 		this.path = context.path;
 		this.statusCode = context.statusCode;
-		this.detail = context.detail;
+		this.code = context.code;
+		this.remediation = context.remediation;
 		this.requestId = context.requestId;
+		this.detail = context.detail;
 	}
 }
 
@@ -77,31 +94,18 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 }
 
 function asString(value: unknown): string | undefined {
-	return typeof value === 'string' ? value : undefined;
+	return typeof value === 'string' && value.trim() ? value : undefined;
 }
 
-function asNumber(value: unknown): number | undefined {
-	if (typeof value === 'number') {
-		return value;
-	}
-	if (typeof value === 'string') {
-		const parsed = Number(value);
-		return Number.isNaN(parsed) ? undefined : parsed;
-	}
-	return undefined;
-}
-
-function extractMessage(detail: unknown): string | undefined {
-	if (typeof detail === 'string' && detail.trim()) {
-		return detail;
+/** Message from a legacy FastAPI `detail`: a string, a validation list, or a nested object. */
+function extractLegacyMessage(detail: unknown): string | undefined {
+	if (typeof detail === 'string') {
+		return asString(detail);
 	}
 
 	if (Array.isArray(detail) && detail.length > 0) {
 		const first = asRecord(detail[0]);
-		const message = first ? asString(first.msg) : undefined;
-		if (message) {
-			return message;
-		}
+		return first ? asString(first.msg) : undefined;
 	}
 
 	const detailRecord = asRecord(detail);
@@ -110,53 +114,50 @@ function extractMessage(detail: unknown): string | undefined {
 	}
 
 	const nestedError = asRecord(detailRecord.error);
-	const nestedMessage = nestedError ? asString(nestedError.message) : undefined;
-	if (nestedMessage) {
-		return nestedMessage;
-	}
-
-	const directMessage = asString(detailRecord.message);
-	if (directMessage) {
-		return directMessage;
-	}
-
-	return undefined;
+	return (nestedError && asString(nestedError.message)) ?? asString(detailRecord.message);
 }
 
-function extractRequestId(response: Record<string, unknown> | undefined): string | undefined {
-	const headers = asRecord(response?.headers);
-	if (!headers) {
-		return undefined;
-	}
-
-	const requestId = headers['x-request-id'] ?? headers['X-Request-ID'];
-	if (Array.isArray(requestId)) {
-		return asString(requestId[0]);
-	}
-	return asString(requestId);
+function headerValue(headers: Record<string, unknown>, name: string): string | undefined {
+	const match = Object.keys(headers).find((key) => key.toLowerCase() === name);
+	const value = match ? headers[match] : undefined;
+	return asString(Array.isArray(value) ? value[0] : value);
 }
 
-function errorFromUnknown(error: unknown, method: PinBridgeMethod, path: string): PinBridgeApiError {
-	const fallbackMessage = `PinBridge request failed (${method} ${path})`;
-	const errorRecord = asRecord(error);
-	const response = asRecord(errorRecord?.response);
-	const detail = response?.body ?? errorRecord?.body ?? errorRecord?.error;
-	const statusCode =
-		asNumber(errorRecord?.statusCode) ?? asNumber(response?.statusCode) ?? undefined;
+function errorFromResponse(
+	response: PinBridgeHttpResponse,
+	method: PinBridgeMethod,
+	path: string,
+): PinBridgeApiError {
+	const body = asRecord(response.body);
+	const envelope = asRecord(body?.error);
 	const message =
-		extractMessage(detail) ??
-		asString(errorRecord?.message) ??
-		asString(errorRecord?.name) ??
-		fallbackMessage;
-	const requestId = extractRequestId(response);
+		(envelope && asString(envelope.message)) ??
+		extractLegacyMessage(body?.detail) ??
+		extractLegacyMessage(body) ??
+		`PinBridge returned HTTP ${response.statusCode} for ${method} ${path}`;
 
 	return new PinBridgeApiError(message, {
 		method,
 		path,
-		statusCode,
-		detail,
-		requestId,
+		statusCode: response.statusCode,
+		code: envelope ? asString(envelope.code) : undefined,
+		remediation: envelope ? asString(envelope.remediation) : undefined,
+		requestId:
+			(envelope && asString(envelope.request_id)) ??
+			headerValue(response.headers, 'x-request-id'),
+		detail: response.body,
 	});
+}
+
+/** Wrap a transport failure (network error, timeout, ...) that produced no HTTP response. */
+function errorFromUnknown(error: unknown, method: PinBridgeMethod, path: string): PinBridgeApiError {
+	const errorRecord = asRecord(error);
+	const message =
+		asString(errorRecord?.message) ??
+		asString(errorRecord?.name) ??
+		`PinBridge request failed (${method} ${path})`;
+
+	return new PinBridgeApiError(message, { method, path, detail: errorRecord?.cause });
 }
 
 export class PinBridgeClient {
@@ -181,8 +182,9 @@ export class PinBridgeClient {
 			headers['Content-Type'] = 'application/json';
 		}
 
+		let response: PinBridgeHttpResponse;
 		try {
-			return await this.config.executor<TResponse>({
+			response = await this.config.executor({
 				method: options.method,
 				url: url.toString(),
 				headers,
@@ -192,5 +194,10 @@ export class PinBridgeClient {
 		} catch (error) {
 			throw errorFromUnknown(error, options.method, options.path);
 		}
+
+		if (response.statusCode >= 400) {
+			throw errorFromResponse(response, options.method, options.path);
+		}
+		return response.body as TResponse;
 	}
 }
