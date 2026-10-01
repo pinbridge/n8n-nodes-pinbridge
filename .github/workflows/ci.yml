@@ -30,6 +30,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
 
@@ -38,5 +41,4 @@ jobs:
           test -f dist/index.js
           test -f dist/nodes/PinBridge/PinBridge.node.js
           test -f dist/credentials/PinBridgeApi.credentials.js
-          test -f dist/credentials/pinbridge.svg
           test -f dist/nodes/PinBridge/pinbridge.svg

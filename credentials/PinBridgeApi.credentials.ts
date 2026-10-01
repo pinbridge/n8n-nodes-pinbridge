@@ -8,9 +8,9 @@ import type {
 
 export class PinBridgeApi implements ICredentialType {
 	name = 'pinBridgeApi';
-	displayName = 'PinBridge API Key';
+	displayName = 'PinBridge API';
 	documentationUrl = 'https://github.com/pinbridge/n8n-nodes-pinbridge#authentication';
-	icon: Icon = 'file:pinbridge.svg';
+	icon: Icon = 'file:../nodes/PinBridge/pinbridge.svg';
 
 	properties: INodeProperties[] = [
 		{
