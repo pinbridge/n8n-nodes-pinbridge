@@ -70,7 +70,7 @@ export function returnAllAndLimitFields(show: Show): INodeProperties[] {
 
 /**
  * Title, text and media fields of a pin, used by pin publishing and schedule creation.
- * `pinOnly` adds the fields a schedule does not accept (alt text, related terms, color).
+ * `pinOnly` adds the fields a schedule does not accept (related terms, color).
  */
 export function pinContentFields(show: Show, options: { pinOnly: boolean }): INodeProperties[] {
 	const fields: INodeProperties[] = [
@@ -139,18 +139,18 @@ export function pinContentFields(show: Show, options: { pinOnly: boolean }): INo
 			default: '',
 			description: 'Optional destination URL for the pin (max 2048 characters)',
 		},
+		{
+			displayName: 'Alt Text',
+			name: 'altText',
+			type: 'string',
+			displayOptions: { show },
+			default: '',
+			description: 'Optional accessibility alt text sent to Pinterest (max 500 characters)',
+		},
 	];
 
 	if (options.pinOnly) {
 		fields.push(
-			{
-				displayName: 'Alt Text',
-				name: 'altText',
-				type: 'string',
-				displayOptions: { show },
-				default: '',
-				description: 'Optional accessibility alt text sent to Pinterest (max 500 characters)',
-			},
 			{
 				displayName: 'Related Terms',
 				name: 'relatedTerms',
@@ -285,11 +285,15 @@ export function buildScheduleBody(this: IExecuteFunctions, itemIndex: number): I
 
 	const description = this.getNodeParameter('description', itemIndex, '') as string;
 	const linkUrl = this.getNodeParameter('linkUrl', itemIndex, '') as string;
+	const altText = this.getNodeParameter('altText', itemIndex, '') as string;
 	if (description) {
 		body.description = description;
 	}
 	if (linkUrl) {
 		body.link_url = linkUrl;
+	}
+	if (altText) {
+		body.alt_text = altText;
 	}
 	return body;
 }

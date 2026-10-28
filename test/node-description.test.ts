@@ -100,6 +100,39 @@ describe('node description', () => {
 		});
 	});
 
+	it('shows Alt Text on schedules, and keeps Related Terms and Dominant Color publish-only', () => {
+		const shownFor = (resource: string, operation: string): string[] =>
+			properties
+				.filter((property) =>
+					NodeHelpers.displayParameter(
+						{ resource, operation, imageSource: 'url', coverImageSource: 'none' },
+						property,
+						{ typeVersion: 1 },
+						node.description,
+					),
+				)
+				.map((property) => property.name);
+
+		for (const operation of ['publish', 'validate']) {
+			const shown = shownFor('pins', operation);
+			for (const name of ['altText', 'relatedTerms', 'dominantColor']) {
+				assert.ok(shown.includes(name), `pins.${operation} shows ${name}`);
+			}
+		}
+		for (const operation of ['create', 'validate']) {
+			const shown = shownFor('schedules', operation);
+			assert.ok(shown.includes('altText'), `schedules.${operation} shows altText`);
+			assert.ok(!shown.includes('relatedTerms'), `schedules.${operation} hides relatedTerms`);
+			assert.ok(!shown.includes('dominantColor'), `schedules.${operation} hides dominantColor`);
+		}
+
+		const updateFields = properties.find((property) => property.name === 'scheduleUpdateFields');
+		const updateOptions = ((updateFields?.options ?? []) as INodeProperties[]).map(
+			(option) => option.name,
+		);
+		assert.ok(updateOptions.includes('altText'), 'schedule update fields include altText');
+	});
+
 	it('is usable as an AI agent tool', () => {
 		assert.equal(node.description.usableAsTool, true);
 	});

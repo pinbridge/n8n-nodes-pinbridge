@@ -78,9 +78,9 @@ Pins deleted on Pinterest after publishing keep status `published` and get `remo
 
 | Operation | Endpoint | Notes |
 | --- | --- | --- |
-| Create | `POST /v1/schedules` | |
+| Create | `POST /v1/schedules` | Optional alt text (max 500), kept for the pin it publishes |
 | Validate | `POST /v1/schedules/validate` | Dry run of Create |
-| Update | `PATCH /v1/schedules/{id}` | Run time, board, text, media or video cover of a schedule that has not run yet |
+| Update | `PATCH /v1/schedules/{id}` | Run time, board, text, alt text, media or video cover of a schedule that has not run yet |
 | Cancel | `POST /v1/schedules/{id}/cancel` | |
 | Retry | `POST /v1/schedules/{id}/retry` | Failed schedules |
 | Delete | `DELETE /v1/schedules/{id}` | |

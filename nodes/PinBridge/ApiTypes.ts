@@ -184,6 +184,7 @@ export interface PinBridgeSchedule {
 		board_id?: string;
 		title?: string;
 		description?: string | null;
+		alt_text?: string | null;
 		link_url?: string | null;
 		media_type?: string;
 		media_url?: string;
