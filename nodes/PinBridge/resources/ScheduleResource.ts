@@ -110,6 +110,13 @@ export const scheduleProperties: INodeProperties[] = [
 		default: {},
 		options: [
 			{
+				displayName: 'Alt Text',
+				name: 'altText',
+				type: 'string',
+				default: '',
+				description: 'New accessibility alt text (max 500 characters). Leave empty to clear it.',
+			},
+			{
 				displayName: 'Asset ID',
 				name: 'assetId',
 				type: 'string',
@@ -370,6 +377,7 @@ export const scheduleOperations: ResourceOperations = {
 		for (const [field, apiField] of [
 			['description', 'description'],
 			['linkUrl', 'link_url'],
+			['altText', 'alt_text'],
 		]) {
 			if (fields[field] !== undefined) {
 				body[apiField] = fields[field] === '' ? null : fields[field];

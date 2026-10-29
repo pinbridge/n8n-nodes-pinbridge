@@ -304,6 +304,72 @@ describe('schedules', () => {
 		});
 	});
 
+	it('create and validate send the alt text, and the output carries it', async () => {
+		const scheduleParams = {
+			resource: 'schedules',
+			accountId: ACCOUNT_ID,
+			boardId: BOARD_ID,
+			runAt: '2026-10-01T09:00:00Z',
+			imageSource: 'url',
+			imageUrl: 'https://cdn.example.com/soup.png',
+			title: 'Autumn recipes',
+			altText: 'A bowl of tomato soup on a wooden table',
+		};
+		const create = await runNode({
+			params: { ...scheduleParams, operation: 'create' },
+			respond: () => ({
+				status: 201,
+				body: scheduleRecord({
+					payload: {
+						...(scheduleRecord().payload as IDataObject),
+						alt_text: 'A bowl of tomato soup on a wooden table',
+					},
+				}),
+			}),
+		});
+		assert.equal((create.requests[0].body as IDataObject).alt_text, 'A bowl of tomato soup on a wooden table');
+		assertIncludes(create.output[0].json, {
+			altText: 'A bowl of tomato soup on a wooden table',
+		});
+
+		const validate = await runNode({
+			params: { ...scheduleParams, operation: 'validate' },
+			respond: () => ({ valid: true, checks: [] }),
+		});
+		assert.equal((validate.requests[0].body as IDataObject).alt_text, 'A bowl of tomato soup on a wooden table');
+
+		const without = await runNode({
+			params: { ...scheduleParams, operation: 'create', altText: '' },
+			respond: () => ({ status: 201, body: scheduleRecord() }),
+		});
+		assert.equal('alt_text' in (without.requests[0].body as IDataObject), false);
+		assertIncludes(without.output[0].json, { altText: null });
+	});
+
+	it('update sets the alt text, and an emptied alt text clears it', async () => {
+		const set = await runNode({
+			params: {
+				resource: 'schedules',
+				operation: 'update',
+				scheduleId: SCHEDULE_ID,
+				scheduleUpdateFields: { altText: 'A red bicycle against a wall' },
+			},
+			respond: () => scheduleRecord(),
+		});
+		assert.deepEqual(set.requests[0].body, { alt_text: 'A red bicycle against a wall' });
+
+		const cleared = await runNode({
+			params: {
+				resource: 'schedules',
+				operation: 'update',
+				scheduleId: SCHEDULE_ID,
+				scheduleUpdateFields: { altText: '' },
+			},
+			respond: () => scheduleRecord(),
+		});
+		assert.deepEqual(cleared.requests[0].body, { alt_text: null });
+	});
+
 	it('validate, retry and delete hit their endpoints', async () => {
 		const validate = await runNode({
 			params: {

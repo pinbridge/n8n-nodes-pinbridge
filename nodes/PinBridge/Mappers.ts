@@ -188,6 +188,7 @@ export function mapScheduleJson(schedule: PinBridgeSchedule): IDataObject {
 		boardId: schedule.payload.board_id ?? null,
 		title: schedule.payload.title ?? null,
 		description: schedule.payload.description ?? null,
+		altText: schedule.payload.alt_text ?? null,
 		linkUrl: schedule.payload.link_url ?? null,
 		mediaType: schedule.payload.media_type ?? null,
 		mediaUrl: schedule.payload.media_url ?? null,
