@@ -246,7 +246,7 @@ describe('pins', () => {
 				description: 'Five soups',
 				linkUrl: 'https://example.com/soups',
 				altText: 'A bowl of soup',
-				relatedTerms: 'soup, stew',
+				relatedTerms: 'a value saved by an older version',
 				dominantColor: '#6E7874',
 				idempotencyKey: 'run-1-0',
 			},
@@ -264,13 +264,14 @@ describe('pins', () => {
 				description: 'Five soups',
 				link_url: 'https://example.com/soups',
 				alt_text: 'A bowl of soup',
-				related_terms: ['soup', 'stew'],
 				dominant_color: '#6E7874',
 			},
 		});
 		assert.equal((requests[0].body as Record<string, unknown>).asset_id, undefined);
+		assert.equal((requests[0].body as Record<string, unknown>).related_terms, undefined);
 		assertIncludes(output[0].json, {
 			id: PIN_ID,
+			relatedTerms: ['soup'],
 			accountId: ACCOUNT_ID,
 			status: 'queued',
 			title: 'Autumn recipes',

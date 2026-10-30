@@ -70,7 +70,7 @@ List operations run once, with the parameters of the first input item. Every oth
 | Get Import | `GET /v1/pins/imports/{id}` | |
 | List Imports | `GET /v1/pins/imports` | Filters: status, source |
 
-Publish, Publish Batch and Validate send `account_id`, `board_id`, `title` (max 100), `description` (max 800), `link_url`, `alt_text` (max 500), `related_terms` (comma-separated in n8n), `dominant_color`, `image_url` or `asset_id`, the optional video cover (`cover_image_url` or `cover_image_asset_id`) and `idempotency_key`, which defaults to `{{$execution.id}}-{{$itemIndex}}`.
+Publish, Publish Batch and Validate send `account_id`, `board_id`, `title` (max 100), `description` (max 800), `link_url`, `alt_text` (max 500), `dominant_color`, `image_url` or `asset_id`, the optional video cover (`cover_image_url` or `cover_image_asset_id`) and `idempotency_key`, which defaults to `{{$execution.id}}-{{$itemIndex}}`.
 
 Pins deleted on Pinterest after publishing keep status `published` and get `removedFromPinterestAt`.
 

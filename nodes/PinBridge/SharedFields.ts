@@ -7,7 +7,7 @@
 
 import type { IDataObject, IDisplayOptions, IExecuteFunctions, INodeProperties } from 'n8n-workflow';
 
-import { dateParameterText, parseCsvList, toTimestampWithOffset } from './GenericFunctions';
+import { dateParameterText, toTimestampWithOffset } from './GenericFunctions';
 
 type Show = NonNullable<IDisplayOptions['show']>;
 
@@ -70,7 +70,7 @@ export function returnAllAndLimitFields(show: Show): INodeProperties[] {
 
 /**
  * Title, text and media fields of a pin, used by pin publishing and schedule creation.
- * `pinOnly` adds the fields a schedule does not accept (related terms, color).
+ * `pinOnly` adds the field a schedule does not accept (color).
  */
 export function pinContentFields(show: Show, options: { pinOnly: boolean }): INodeProperties[] {
 	const fields: INodeProperties[] = [
@@ -151,14 +151,6 @@ export function pinContentFields(show: Show, options: { pinOnly: boolean }): INo
 
 	if (options.pinOnly) {
 		fields.push(
-			{
-				displayName: 'Related Terms',
-				name: 'relatedTerms',
-				type: 'string',
-				displayOptions: { show },
-				default: '',
-				description: 'Optional comma-separated related terms for Pinterest',
-			},
 			{
 				displayName: 'Dominant Color',
 				name: 'dominantColor',
@@ -248,7 +240,6 @@ export function buildPinBody(this: IExecuteFunctions, itemIndex: number): IDataO
 	const description = this.getNodeParameter('description', itemIndex, '') as string;
 	const linkUrl = this.getNodeParameter('linkUrl', itemIndex, '') as string;
 	const altText = this.getNodeParameter('altText', itemIndex, '') as string;
-	const relatedTerms = parseCsvList(this.getNodeParameter('relatedTerms', itemIndex, '') as string);
 	const dominantColor = this.getNodeParameter('dominantColor', itemIndex, '') as string;
 
 	if (description) {
@@ -259,9 +250,6 @@ export function buildPinBody(this: IExecuteFunctions, itemIndex: number): IDataO
 	}
 	if (altText) {
 		body.alt_text = altText;
-	}
-	if (relatedTerms.length > 0) {
-		body.related_terms = relatedTerms;
 	}
 	if (dominantColor) {
 		body.dominant_color = dominantColor;

@@ -111,6 +111,7 @@ export function mapPinJson(pin: PinBridgePinRecord): IDataObject {
 		mediaType: pin.media_type,
 		title: pin.title,
 		description: pin.description ?? null,
+		// Deprecated: null for pins created from API 1.65.1 on. Kept for workflows that read it.
 		relatedTerms: pin.related_terms ?? null,
 		altText: pin.alt_text ?? null,
 		dominantColor: pin.dominant_color ?? null,

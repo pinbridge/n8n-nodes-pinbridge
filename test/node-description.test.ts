@@ -100,7 +100,7 @@ describe('node description', () => {
 		});
 	});
 
-	it('shows Alt Text on schedules, and keeps Related Terms and Dominant Color publish-only', () => {
+	it('shows Alt Text on schedules, keeps Dominant Color publish-only, and no longer offers Related Terms', () => {
 		const shownFor = (resource: string, operation: string): string[] =>
 			properties
 				.filter((property) =>
@@ -115,9 +115,10 @@ describe('node description', () => {
 
 		for (const operation of ['publish', 'validate']) {
 			const shown = shownFor('pins', operation);
-			for (const name of ['altText', 'relatedTerms', 'dominantColor']) {
+			for (const name of ['altText', 'dominantColor']) {
 				assert.ok(shown.includes(name), `pins.${operation} shows ${name}`);
 			}
+			assert.ok(!shown.includes('relatedTerms'), `pins.${operation} hides relatedTerms`);
 		}
 		for (const operation of ['create', 'validate']) {
 			const shown = shownFor('schedules', operation);
