@@ -115,9 +115,10 @@ describe('node description', () => {
 
 		for (const operation of ['publish', 'validate']) {
 			const shown = shownFor('pins', operation);
-			for (const name of ['altText', 'relatedTerms', 'dominantColor']) {
+			for (const name of ['altText', 'dominantColor']) {
 				assert.ok(shown.includes(name), `pins.${operation} shows ${name}`);
 			}
+			assert.ok(!shown.includes('relatedTerms'), `pins.${operation} hides relatedTerms`);
 		}
 		for (const operation of ['create', 'validate']) {
 			const shown = shownFor('schedules', operation);

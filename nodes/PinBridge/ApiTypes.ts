@@ -63,7 +63,6 @@ export interface PinBridgePinRecord {
 	media_type: string;
 	title: string;
 	description?: string | null;
-	related_terms?: string[] | null;
 	alt_text?: string | null;
 	dominant_color?: string | null;
 	cover_image_url?: string | null;

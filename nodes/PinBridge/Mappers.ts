@@ -111,7 +111,6 @@ export function mapPinJson(pin: PinBridgePinRecord): IDataObject {
 		mediaType: pin.media_type,
 		title: pin.title,
 		description: pin.description ?? null,
-		relatedTerms: pin.related_terms ?? null,
 		altText: pin.alt_text ?? null,
 		dominantColor: pin.dominant_color ?? null,
 		coverImageUrl: pin.cover_image_url ?? null,

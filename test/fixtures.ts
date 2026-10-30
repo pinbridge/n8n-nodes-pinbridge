@@ -18,7 +18,6 @@ export function pinRecord(overrides: IDataObject = {}): IDataObject {
 		media_type: 'image',
 		title: 'Autumn recipes',
 		description: 'Five soups',
-		related_terms: ['soup'],
 		alt_text: null,
 		dominant_color: null,
 		cover_image_url: null,
