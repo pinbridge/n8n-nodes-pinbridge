@@ -271,6 +271,7 @@ describe('pins', () => {
 		assert.equal((requests[0].body as Record<string, unknown>).related_terms, undefined);
 		assertIncludes(output[0].json, {
 			id: PIN_ID,
+			relatedTerms: ['soup'],
 			accountId: ACCOUNT_ID,
 			status: 'queued',
 			title: 'Autumn recipes',

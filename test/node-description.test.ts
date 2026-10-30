@@ -100,7 +100,7 @@ describe('node description', () => {
 		});
 	});
 
-	it('shows Alt Text on schedules, and keeps Related Terms and Dominant Color publish-only', () => {
+	it('shows Alt Text on schedules, keeps Dominant Color publish-only, and no longer offers Related Terms', () => {
 		const shownFor = (resource: string, operation: string): string[] =>
 			properties
 				.filter((property) =>
