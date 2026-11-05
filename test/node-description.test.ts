@@ -95,6 +95,7 @@ describe('node description', () => {
 			pins: 'publish',
 			rateMeter: 'get',
 			schedules: 'create',
+			templates: 'publishPin',
 			terms: 'listRelated',
 			webhooks: 'list',
 		});

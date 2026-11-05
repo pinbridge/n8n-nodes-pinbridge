@@ -139,3 +139,24 @@ export function importJobRecord(overrides: IDataObject = {}): IDataObject {
 		...overrides,
 	};
 }
+
+export const TEMPLATE_ID = '88888888-8888-4888-8888-888888888888';
+
+export function templateRecord(overrides: IDataObject = {}): IDataObject {
+	return {
+		id: TEMPLATE_ID,
+		key: 'ruled_band',
+		name: 'Ruled band',
+		description: 'Two photos and a title band',
+		niche: 'food',
+		source: 'gallery',
+		version: 1,
+		copied_from: null,
+		copies_count: 2,
+		pins_count: 5,
+		uses_custom_fonts: false,
+		created_at: '2026-11-01T10:00:00Z',
+		updated_at: '2026-11-01T10:00:00Z',
+		...overrides,
+	};
+}

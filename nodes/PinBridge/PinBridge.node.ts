@@ -8,7 +8,7 @@ import type {
 } from 'n8n-workflow';
 import { NodeConnectionTypes as NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 
-import type { PinBridgeAccount, PinBridgeBoard } from './ApiTypes';
+import type { PinBridgeAccount, PinBridgeBoard, PinBridgeTemplate } from './ApiTypes';
 import type { ResourceOperations } from './GenericFunctions';
 import { errorItemJson, pinBridgeApiRequest, toNodeError } from './GenericFunctions';
 import { normalizeAccountName } from './Mappers';
@@ -20,6 +20,7 @@ import { connectionOperations, connectionProperties } from './resources/Connecti
 import { pinOperations, pinProperties } from './resources/PinResource';
 import { rateMeterOperations, rateMeterProperties } from './resources/RateMeterResource';
 import { scheduleOperations, scheduleProperties } from './resources/ScheduleResource';
+import { templateOperations, templateProperties } from './resources/TemplateResource';
 import { termOperations, termProperties } from './resources/TermResource';
 import { webhookOperations, webhookProperties } from './resources/WebhookResource';
 
@@ -32,6 +33,7 @@ export const operationsByResource: Record<string, ResourceOperations> = {
 	pins: pinOperations,
 	rateMeter: rateMeterOperations,
 	schedules: scheduleOperations,
+	templates: templateOperations,
 	terms: termOperations,
 	webhooks: webhookOperations,
 };
@@ -97,6 +99,10 @@ export class PinBridge implements INodeType {
 						value: 'schedules',
 					},
 					{
+						name: 'Template',
+						value: 'templates',
+					},
+					{
 						name: 'Term',
 						value: 'terms',
 					},
@@ -115,6 +121,7 @@ export class PinBridge implements INodeType {
 			...pinProperties,
 			...rateMeterProperties,
 			...scheduleProperties,
+			...templateProperties,
 			...termProperties,
 			...webhookProperties,
 		],
@@ -122,6 +129,19 @@ export class PinBridge implements INodeType {
 
 	methods = {
 		loadOptions: {
+			async getTemplates(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const templates = (await pinBridgeApiRequest.call(this, 'GET', '/v1/templates', {
+					sort: 'name',
+					limit: 200,
+				})) as PinBridgeTemplate[];
+
+				return templates.map((template) => ({
+					name: template.source === 'gallery' ? `${template.name} (gallery)` : template.name,
+					value: template.id,
+					description: template.description || undefined,
+				}));
+			},
+
 			async getAccounts(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const accounts = (await pinBridgeApiRequest.call(
 					this,

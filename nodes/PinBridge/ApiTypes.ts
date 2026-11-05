@@ -76,6 +76,8 @@ export interface PinBridgePinRecord {
 	error_code?: string | null;
 	error_message?: string | null;
 	idempotency_key: string;
+	template_id?: string | null;
+	template_version?: number | null;
 	created_at: string;
 	updated_at: string;
 	published_at?: string | null;
@@ -198,6 +200,8 @@ export interface PinBridgeSchedule {
 	created_at: string;
 	updated_at: string;
 	[key: string]: unknown;
+	template_id?: string | null;
+	template_version?: number | null;
 }
 
 export interface PinBridgeAsset {
@@ -353,3 +357,38 @@ export interface PinBridgeDashboardSummary {
 	import_jobs?: IDataObject | null;
 	[key: string]: unknown;
 }
+
+/** A pin template in `GET /v1/templates`. */
+export interface PinBridgeTemplate {
+	id: string;
+	key: string;
+	name: string;
+	description?: string | null;
+	niche?: string | null;
+	source: 'gallery' | 'workspace';
+	version: number;
+	copies_count?: number;
+	pins_count?: number;
+	uses_custom_fonts?: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+/** One input of a template definition (`definition.inputs`). */
+export interface PinBridgeTemplateInput {
+	type: string;
+	label?: string;
+	required?: boolean;
+	min_length?: number;
+	max_length?: number;
+	min?: number;
+	max?: number;
+	default?: unknown;
+}
+
+/** `GET /v1/templates/{id}`: the template with its definition and sample inputs. */
+export interface PinBridgeTemplateDetail extends PinBridgeTemplate {
+	definition: { inputs?: Record<string, PinBridgeTemplateInput> } & Record<string, unknown>;
+	sample_inputs: Record<string, unknown>;
+}
+
