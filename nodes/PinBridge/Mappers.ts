@@ -27,6 +27,8 @@ import type {
 	PinBridgeRelatedTermsItem,
 	PinBridgeRelatedTermsResponse,
 	PinBridgeSchedule,
+	PinBridgeTemplate,
+	PinBridgeTemplateDetail,
 	PinBridgeValidationResponse,
 	PinBridgeWebhook,
 } from './ApiTypes';
@@ -130,6 +132,8 @@ export function mapPinJson(pin: PinBridgePinRecord): IDataObject {
 		publishedAt: pin.published_at ?? null,
 		failedAt: pin.failed_at ?? null,
 		removedFromPinterestAt: pin.removed_from_pinterest_at ?? null,
+		templateId: pin.template_id ?? null,
+		templateVersion: pin.template_version ?? null,
 		raw: raw(pin),
 	};
 }
@@ -198,6 +202,8 @@ export function mapScheduleJson(schedule: PinBridgeSchedule): IDataObject {
 		coverImageUrl: schedule.payload.cover_image_url ?? null,
 		pinId: schedule.pin_id ?? null,
 		lastError: schedule.last_error ?? null,
+		templateId: schedule.template_id ?? null,
+		templateVersion: schedule.template_version ?? null,
 		createdAt: schedule.created_at,
 		updatedAt: schedule.updated_at,
 		raw: raw(schedule),
@@ -413,3 +419,43 @@ export function mapDashboardSummaryJson(summary: PinBridgeDashboardSummary): IDa
 		importJobs: summary.import_jobs ?? null,
 	};
 }
+
+function isTemplateDetail(
+	template: PinBridgeTemplate | PinBridgeTemplateDetail,
+): template is PinBridgeTemplateDetail {
+	return 'definition' in template && typeof template.definition === 'object';
+}
+
+/** A template; with its inputs and sample inputs when it comes from Get. */
+export function mapTemplateJson(template: PinBridgeTemplate | PinBridgeTemplateDetail): IDataObject {
+	const json: IDataObject = {
+		id: template.id,
+		key: template.key,
+		name: template.name,
+		description: template.description ?? null,
+		niche: template.niche ?? null,
+		source: template.source,
+		version: template.version,
+		pinsCount: template.pins_count ?? 0,
+		copiesCount: template.copies_count ?? 0,
+		usesCustomFonts: template.uses_custom_fonts ?? false,
+		createdAt: template.created_at,
+		updatedAt: template.updated_at,
+	};
+	if (isTemplateDetail(template)) {
+		json.inputs = Object.entries(template.definition.inputs ?? {}).map(([name, input]) => ({
+			name,
+			type: input.type,
+			label: input.label ?? name,
+			required: input.required ?? false,
+			minLength: input.min_length ?? null,
+			maxLength: input.max_length ?? null,
+			min: input.min ?? null,
+			max: input.max ?? null,
+		}));
+		json.sampleInputs = template.sample_inputs as IDataObject;
+	}
+	json.raw = raw(template);
+	return json;
+}
+

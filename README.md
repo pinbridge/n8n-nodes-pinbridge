@@ -8,6 +8,7 @@ This release targets the PinBridge API v1 as of PinBridge 1.41.
 
 - **Pins**: publish one pin per item or many in one batch request, dry-run a pin before publishing, edit a pin before it publishes, retry a failed pin (optionally on another board or account), delete it (optionally on Pinterest too), list with filters, bulk import from JSON items or a CSV file, and follow import jobs.
 - **Schedules**: create, dry-run, edit in place, cancel, retry, delete, and list with filters.
+- **Templates**: list and get pin templates, and publish or schedule a pin that PinBridge draws from a template and your inputs.
 - **Boards**: list, create, update (name, description, privacy), delete, and check whether a connection can publish to a board.
 - **Assets**: upload images and videos from binary data, get, list with filters, and delete.
 - **Analytics**: account and pin analytics, a cross-account overview, top pins by metric, a publishing summary (success rate, queue, upcoming schedules), and an on-demand refresh.
@@ -88,6 +89,19 @@ Pins deleted on Pinterest after publishing keep status `published` and get `remo
 | List | `GET /v1/schedules` | Filters: connection, board, status, search, run after/before, sort |
 
 **Run At** accepts any ISO 8601 time. A time without an offset (what n8n's date picker produces) is read in the workflow's time zone.
+
+### Template
+
+| Operation | Endpoint | Notes |
+| --- | --- | --- |
+| Publish Pin | `POST /v1/pins` | Sends `template_id` and `template_inputs`; PinBridge draws the image and publishes it |
+| Create Schedule | `POST /v1/schedules` | The same, published at **Run At**. The image is drawn when the schedule is created |
+| Get | `GET /v1/templates/{id}` | The template with its inputs, their limits and sample values |
+| List | `GET /v1/templates` | Filters: gallery or your own, search |
+
+**Template Inputs** is a JSON object of input name to value. A text input takes text, a color input `#RRGGBB`, and a photo input an image URL, `{"src": URL, "focus": [x, y], "zoom": 1 to 3}` or `{"asset_id": ID}` for an uploaded image. The pin is drawn at the size the template was built at. **Template Options** sets the version to draw. Templates have to be available in your PinBridge workspace.
+
+In the PinBridge web app, a template's **Use in n8n** button copies this node with the template and its sample inputs filled in: paste it into the n8n canvas and pick a connection and a board.
 
 ### Board
 
@@ -182,6 +196,10 @@ Videos work the same way with **Upload Video**.
 ### Schedule a future publish
 1. **Schedule → Create**, pick **Run At** in the date picker (read in the workflow's time zone).
 2. Change it later with **Schedule → Update** instead of cancelling and recreating it.
+
+### Publish a pin from a template for each new blog post
+1. An **RSS Read** or **WordPress** trigger.
+2. **Template → Publish Pin** with **Template Inputs** such as `{"title": "{{$json.title}}", "photo": "{{$json.image}}"}`.
 
 ### Weekly report
 1. A **Schedule Trigger** every Monday.
