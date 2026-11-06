@@ -149,31 +149,6 @@ export const templateProperties: INodeProperties[] = [
 		default: {},
 		options: [
 			{
-				displayName: 'Size',
-				name: 'size',
-				type: 'options',
-				options: [
-					{
-						name: '2:3 (1000 × 1500)',
-						value: 'pin_2x3',
-					},
-					{
-						name: '1:2 (1000 × 2000)',
-						value: 'pin_1x2',
-					},
-					{
-						name: 'Template Canvas',
-						value: '',
-					},
-					{
-						name: 'Tall (1200 × 2520)',
-						value: 'pin_10x21',
-					},
-				],
-				default: '',
-				description: 'Size to draw the pin at. Template Canvas uses the size the template was made at.',
-			},
-			{
 				displayName: 'Version',
 				name: 'version',
 				type: 'number',
@@ -249,10 +224,8 @@ function drawBody(this: IExecuteFunctions, itemIndex: number): IDataObject {
 		template_id: getRequiredId.call(this, 'templateId', 'Template ID', itemIndex),
 		template_inputs: templateInputs.call(this, itemIndex),
 	};
+	// A template has one size, the one it was built at, so there is no size to send.
 	const options = this.getNodeParameter('templateOptions', itemIndex, {}) as IDataObject;
-	if (options.size) {
-		body.template_size = options.size;
-	}
 	if (typeof options.version === 'number' && options.version > 0) {
 		body.template_version = options.version;
 	}

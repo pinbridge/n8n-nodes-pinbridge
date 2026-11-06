@@ -32,7 +32,7 @@ describe('templates', () => {
 				operation: 'publishPin',
 				description: 'Fresh and quick',
 				linkUrl: 'https://example.com/salsa',
-				templateOptions: { size: 'pin_1x2', version: 3 },
+				templateOptions: { version: 3 },
 			},
 			respond: () =>
 				pinRecord({ asset_id: ASSET_ID, template_id: TEMPLATE_ID, template_version: 3 }),
@@ -44,7 +44,6 @@ describe('templates', () => {
 			title: 'Pineapple Salsa',
 			template_id: TEMPLATE_ID,
 			template_inputs: { title: 'Pineapple Salsa', photo_top: 'https://cdn.example.com/top.jpg' },
-			template_size: 'pin_1x2',
 			template_version: 3,
 			description: 'Fresh and quick',
 			link_url: 'https://example.com/salsa',
@@ -59,9 +58,10 @@ describe('templates', () => {
 		});
 	});
 
-	it('publish pin leaves the size and version out when they are not set', async () => {
+	it('publish pin never sends a size, and leaves the version out when it is not set', async () => {
+		// A workflow saved before 1.4.1 may still carry the old Size option.
 		const { requests } = await runNode({
-			params: { ...drawParams, operation: 'publishPin' },
+			params: { ...drawParams, operation: 'publishPin', templateOptions: { size: 'pin_1x2' } },
 			respond: () => pinRecord(),
 		});
 		const body = requests[0].body as Record<string, unknown>;
