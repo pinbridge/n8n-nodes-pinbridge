@@ -101,7 +101,7 @@ Pins deleted on Pinterest after publishing keep status `published` and get `remo
 
 **Template Inputs** is a JSON object of input name to value. A text input takes text, a color input `#RRGGBB`, and a photo input an image URL, `{"src": URL, "focus": [x, y], "zoom": 1 to 3}` or `{"asset_id": ID}` for an uploaded image. The pin is drawn at the size the template was built at. **Template Options** sets the version to draw. Templates have to be available in your PinBridge workspace.
 
-In the PinBridge web app, a template's **Use in n8n** button copies this node with the template and its sample inputs filled in: paste it into the n8n canvas and pick a connection and a board.
+In the PinBridge web app, a template's **API and n8n** button opens a panel whose **n8n** tab copies this node with the template and its sample inputs filled in: paste it into the n8n canvas and pick a connection and a board.
 
 ### Board
 
